@@ -7,6 +7,7 @@
   "userConfig": {
     "api_key": {
       "type": "string",
+      "title": "Bankstatemently API key",
       "description": "Your Bankstatemently API key (bsk_live_...). Create one in the Developer Portal.",
       "sensitive": true
     }

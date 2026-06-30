@@ -1,3 +1,8 @@
+---
+name: bankstatemently
+description: Workflow guidance for the Bankstatemently MCP tools — parsing bank statement PDFs, listing statements, checking credits, and running benchmark evaluations. Use when working with the bankstatemently MCP server.
+---
+
 # Bankstatemently MCP
 
 Parse and query bank statements using the Bankstatemently API.
