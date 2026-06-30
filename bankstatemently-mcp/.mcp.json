@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "bankstatemently": {
+      "type": "http",
+      "url": "https://api.bankstatemently.com/mcp",
+      "headers": { "X-API-Key": "${user_config.api_key}" }
+    }
+  }
+}

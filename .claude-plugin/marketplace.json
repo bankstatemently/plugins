@@ -1,0 +1,11 @@
+{
+  "name": "bankstatemently",
+  "owner": { "name": "Bankstatemently", "url": "https://bankstatemently.com" },
+  "plugins": [
+    {
+      "name": "bankstatemently-mcp",
+      "source": "./bankstatemently-mcp",
+      "description": "Parse and query bank statements via the Bankstatemently MCP server."
+    }
+  ]
+}

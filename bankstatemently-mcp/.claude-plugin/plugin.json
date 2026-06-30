@@ -1,0 +1,15 @@
+{
+  "name": "bankstatemently-mcp",
+  "version": "0.1.0",
+  "description": "Parse and query bank statements via the Bankstatemently MCP server.",
+  "author": { "name": "Bankstatemently", "url": "https://bankstatemently.com" },
+  "defaultEnabled": false,
+  "userConfig": {
+    "api_key": {
+      "type": "string",
+      "description": "Your Bankstatemently API key (bsk_live_...). Create one in the Developer Portal.",
+      "sensitive": true
+    }
+  },
+  "mcpServers": "./.mcp.json"
+}
