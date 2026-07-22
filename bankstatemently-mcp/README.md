@@ -2,9 +2,21 @@
 
 Parse and query bank statements via the [Bankstatemently](https://bankstatemently.com) MCP server.
 
-The server is live at `https://api.bankstatemently.com/mcp` (streamable HTTP, API-key auth).
+The server is live at `https://api.bankstatemently.com/mcp` (streamable HTTP). Two ways to authenticate: browser sign-in (OAuth, interactive) or an API key (headless/Codex/CI). The API-key lane is permanent — it stays available regardless of OAuth.
 
-## Getting an API key
+## OAuth (browser sign-in)
+
+For an interactive install with no key to copy/paste — the server advertises OAuth discovery metadata (`/.well-known/oauth-protected-resource/mcp`, `/.well-known/oauth-authorization-server`) and Clerk acts as the authorization server.
+
+Enable the `bankstatemently-oauth` server variant after installing the plugin, or install it directly:
+
+```bash
+claude mcp add --transport http bankstatemently https://api.bankstatemently.com/mcp
+```
+
+Claude Code detects the 401 + `WWW-Authenticate` challenge, discovers the authorization server, registers a client (Dynamic Client Registration), and opens a browser for you to sign in. Credits are debited from the signed-in user's account.
+
+## Getting an API key (headless / Codex / CI)
 
 Create a key at the [Bankstatemently Developer Portal](https://bankstatemently.com/developer). Keys start with `bsk_live_`.
 
@@ -32,7 +44,7 @@ claude mcp add --transport http bankstatemently https://api.bankstatemently.com/
   --header "X-API-Key: <your-bsk_live_key>"
 ```
 
-> Auth note: the server reads the key from `X-API-Key` only. Sending it via `Authorization: Bearer` will be rejected.
+> Auth note: the server reads the key from `X-API-Key` only. Sending it via `Authorization: Bearer` will be rejected. This is unchanged by OAuth — API-key and OAuth are separate, coexisting auth paths (see the OAuth section above for the browser-sign-in alternative).
 
 ---
 
