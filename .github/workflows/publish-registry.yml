@@ -1,0 +1,37 @@
+name: Publish to MCP Registry
+
+# Human-triggered ONLY — no push/cron trigger. Run from the public
+# bankstatemently/plugins repo (this file ships there via
+# scripts/dev/publish-plugin.sh): Actions → "Publish to MCP Registry" →
+# Run workflow.
+#
+# Syntax pinned from the official guide:
+# https://modelcontextprotocol.io/registry/github-actions (verified 2026-07-22)
+on:
+  workflow_dispatch:
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write # required for github-oidc auth — no interactive login
+      contents: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Install mcp-publisher
+        run: |
+          # Pinned release (never `latest`) — bump this tag deliberately.
+          curl -L "https://github.com/modelcontextprotocol/registry/releases/download/v1.8.0/mcp-publisher_linux_amd64.tar.gz" | tar xz mcp-publisher
+
+      - name: Authenticate to MCP Registry
+        run: ./mcp-publisher login github-oidc
+
+      - name: Publish server to MCP Registry
+        run: ./mcp-publisher publish
+        # No `--registry` flag: mcp-publisher defaults to
+        # https://registry.modelcontextprotocol.io (confirmed in the
+        # official quickstart's sample output: "Publishing to
+        # https://registry.modelcontextprotocol.io..."). server.json is
+        # read from the repo root by default.
