@@ -1,0 +1,41 @@
+{
+  "name": "bankstatemently-mcp",
+  "version": "0.2.0",
+  "description": "Parse and query bank statements via the Bankstatemently MCP server.",
+  "author": {
+    "name": "Bankstatemently",
+    "url": "https://bankstatemently.com"
+  },
+  "homepage": "https://bankstatemently.com/developers/mcp",
+  "repository": "https://github.com/bankstatemently/plugins",
+  "license": "MIT",
+  "keywords": ["bank-statements", "mcp", "finance", "pdf", "transactions"],
+  "skills": "./skills/",
+  "mcpServers": {
+    "bankstatemently": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "mcp-remote",
+        "https://api.bankstatemently.com/mcp",
+        "--header",
+        "X-API-Key: ${BANKSTATEMENTLY_API_KEY}"
+      ]
+    }
+  },
+  "interface": {
+    "displayName": "Bankstatemently",
+    "shortDescription": "Parse PDF bank statements into structured data.",
+    "longDescription": "Connect Codex to the Bankstatemently MCP server to parse PDF bank statements, fetch statement results, check credits, list prior statements, and evaluate benchmark output.",
+    "developerName": "Bankstatemently",
+    "category": "Productivity",
+    "capabilities": ["MCP", "Finance", "PDF parsing"],
+    "websiteURL": "https://bankstatemently.com/developers/mcp",
+    "defaultPrompt": [
+      "Check my Bankstatemently credits.",
+      "Parse this bank statement PDF.",
+      "List my recent parsed statements."
+    ],
+    "brandColor": "#2563EB"
+  }
+}

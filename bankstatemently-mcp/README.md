@@ -48,7 +48,22 @@ claude mcp add --transport http bankstatemently https://api.bankstatemently.com/
 
 ---
 
-## Codex
+## Codex plugin
+
+After the plugin is published with Codex metadata, install it from the same marketplace:
+
+```bash
+codex plugin marketplace add bankstatemently/plugins
+codex plugin add bankstatemently-mcp@bankstatemently
+```
+
+Set the environment variable before starting Codex:
+
+```bash
+export BANKSTATEMENTLY_API_KEY=bsk_live_...
+```
+
+## Codex manual MCP bridge
 
 Codex supports only stdio-based MCP servers. Use [mcp-remote](https://github.com/geelen/mcp-remote) as a bridge.
 
