@@ -1,6 +1,6 @@
 {
   "name": "bankstatemently-mcp",
-  "version": "0.2.0",
+  "version": "0.4.0",
   "description": "Parse and query bank statements via the Bankstatemently MCP server.",
   "author": { "name": "Bankstatemently", "url": "https://bankstatemently.com" },
   "defaultEnabled": false,

@@ -1,6 +1,10 @@
 {
   "name": "bankstatemently",
-  "owner": { "name": "Bankstatemently", "url": "https://bankstatemently.com" },
+  "description": "Official Bankstatemently plugins — parse and query bank statements directly from Claude.",
+  "owner": {
+    "name": "Bankstatemently",
+    "url": "https://bankstatemently.com"
+  },
   "plugins": [
     {
       "name": "bankstatemently-mcp",

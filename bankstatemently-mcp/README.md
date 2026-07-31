@@ -2,7 +2,7 @@
 
 Parse and query bank statements via the [Bankstatemently](https://bankstatemently.com) MCP server.
 
-The server is live at `https://api.bankstatemently.com/mcp` (streamable HTTP). Two ways to authenticate: browser sign-in (OAuth, interactive) or an API key (headless/Codex/CI). The API-key lane is permanent — it stays available regardless of OAuth.
+The server is live at `https://api.bankstatemently.com/mcp` (streamable HTTP). Two ways to authenticate: browser sign-in (OAuth, interactive — Claude Code, claude.ai, ChatGPT, and Codex all support this) or an API key (genuinely headless setups: CI, scripts). The API-key lane is permanent — it stays available regardless of OAuth.
 
 ## OAuth (browser sign-in)
 
@@ -16,7 +16,7 @@ claude mcp add --transport http bankstatemently https://api.bankstatemently.com/
 
 Claude Code detects the 401 + `WWW-Authenticate` challenge, discovers the authorization server, registers a client (Dynamic Client Registration), and opens a browser for you to sign in. Credits are debited from the signed-in user's account.
 
-## Getting an API key (headless / Codex / CI)
+## Getting an API key (genuinely headless setups: CI, scripts)
 
 Create a key at the [Bankstatemently Developer Portal](https://bankstatemently.com/developer). Keys start with `bsk_live_`.
 
@@ -48,38 +48,25 @@ claude mcp add --transport http bankstatemently https://api.bankstatemently.com/
 
 ---
 
-## Codex plugin
+## Codex
 
-After the plugin is published with Codex metadata, install it from the same marketplace:
-
-```bash
-codex plugin marketplace add bankstatemently/plugins
-codex plugin add bankstatemently-mcp@bankstatemently
-```
-
-Set the environment variable before starting Codex:
+Codex has native OAuth support. This one command detects our server's discovery metadata and opens your browser to sign in — no key is ever stored:
 
 ```bash
-export BANKSTATEMENTLY_API_KEY=bsk_live_...
+codex mcp add bankstatemently --url https://api.bankstatemently.com/mcp
 ```
 
-## Codex manual MCP bridge
-
-Codex supports only stdio-based MCP servers. Use [mcp-remote](https://github.com/geelen/mcp-remote) as a bridge.
-
-Add to `~/.codex/config.toml`:
-
-```toml
-[mcp_servers.bankstatemently]
-command = "npx"
-args = ["-y", "mcp-remote", "https://api.bankstatemently.com/mcp", "--header", "X-API-Key: ${BANKSTATEMENTLY_API_KEY}"]
-```
-
-Set the environment variable before running Codex:
+For headless or CI setups where a browser sign-in isn't possible, use an API key via the [mcp-remote](https://github.com/geelen/mcp-remote) bridge instead. Export the key in the shell that launches Codex, before it starts:
 
 ```bash
 export BANKSTATEMENTLY_API_KEY=bsk_live_...
+
+codex mcp add bankstatemently -- npx -y mcp-remote@latest https://api.bankstatemently.com/mcp --header "X-API-Key: ${BANKSTATEMENTLY_API_KEY}"
 ```
+
+Codex doesn't yet surface plugin-declared MCP servers into sessions, so the plugin install above (and its bundled skill) isn't available in Codex today — use the commands above instead.
+
+**Credential managers & sandboxed clients:** never fetch a secret from Keychain, 1Password, or another credential manager inside the MCP server command itself — Codex runs that command sandboxed at tool discovery, so a credential-manager lookup dies silently and the server's tools never appear. Export the key in the shell that launches Codex instead. Also note that `mcp-remote` logs its resolved header values to stderr, so a wrapper-resolved key can end up in your client logs.
 
 ---
 
