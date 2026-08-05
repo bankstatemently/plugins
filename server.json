@@ -2,8 +2,8 @@
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.bankstatemently/bankstatemently-mcp",
   "title": "Bankstatemently",
-  "description": "Parse PDF bank statements into structured transactions, accounts, and balances.",
-  "version": "0.4.0",
+  "description": "Convert PDF bank statements into structured transactions, accounts, and balances.",
+  "version": "0.6.0",
   "repository": { "url": "https://github.com/bankstatemently/plugins", "source": "github" },
   "websiteUrl": "https://bankstatemently.com/developers/mcp",
   "remotes": [
