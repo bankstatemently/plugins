@@ -16,11 +16,19 @@ no catalog is needed here.
 | Tool | Credits |
 |---|---|
 | `convert_statement` | 1 per page |
+| `request_upload` | Free |
 | `get_statement` | Free |
 | `categorize_statement` | Pooled per page (first run only) |
 | `list_statements` | Free |
 | `get_credits` | Free |
 | `rate_statement` | Free |
+| `list_transactions` | Free |
+| `aggregate` | Free |
+| `group_by` | Free |
+| `top_n` | Free |
+| `compare` | Free |
+| `time_series` | Free |
+| `list_transfers` | Free |
 | `evaluate_benchmark` | Free |
 <!-- TOOL_CREDITS_END -->
 
