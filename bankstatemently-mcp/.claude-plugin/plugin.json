@@ -1,14 +1,14 @@
 {
   "name": "bankstatemently-mcp",
-  "version": "0.8.1",
+  "version": "0.8.2",
   "description": "Convert and query bank statements via the Bankstatemently MCP server.",
   "author": { "name": "Bankstatemently", "url": "https://bankstatemently.com" },
   "defaultEnabled": false,
   "userConfig": {
     "api_key": {
       "type": "string",
-      "title": "Bankstatemently API key",
-      "description": "Your Bankstatemently API key (bsk_live_...). Create one in the Developer Portal.",
+      "title": "Bankstatemently API key (optional)",
+      "description": "Optional — leave blank to sign in with your browser (OAuth) on first use. Developers running headless (CI, scripts) may paste a bsk_live_... key instead.",
       "sensitive": true
     }
   },

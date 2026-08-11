@@ -29,7 +29,7 @@ Create a key at the [Bankstatemently Developer Portal](https://bankstatemently.c
 /plugin install bankstatemently-mcp@bankstatemently
 ```
 
-After installing, enable the plugin and paste your `bsk_live_...` key when prompted for `api_key`.
+After installing, enable the plugin. When prompted for `api_key`, leave it blank to sign in with your browser (OAuth) on first use — or paste a `bsk_live_...` key if you're setting up a headless install.
 
 > **Dev install (local checkout):** `cd` to the repo root and run `/plugin marketplace add .`, then `/plugin install bankstatemently-mcp`.
 
