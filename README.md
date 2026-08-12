@@ -1,5 +1,7 @@
 # bankstatemently/plugins
 
+[![plugins MCP server](https://glama.ai/mcp/servers/bankstatemently/plugins/badges/card.svg)](https://glama.ai/mcp/servers/bankstatemently/plugins)
+
 Marketplace plugins for [Bankstatemently](https://bankstatemently.com) — parse and query bank statements.
 
 ## Install via Claude Code marketplace
