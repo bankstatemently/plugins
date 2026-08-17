@@ -3,7 +3,7 @@
   "name": "io.github.bankstatemently/bankstatemently-mcp",
   "title": "Bankstatemently",
   "description": "Convert PDF bank statements into structured transactions, accounts, and balances.",
-  "version": "0.8.2",
+  "version": "0.8.5",
   "repository": { "url": "https://github.com/bankstatemently/plugins", "source": "github" },
   "websiteUrl": "https://bankstatemently.com/developers/mcp",
   "remotes": [
