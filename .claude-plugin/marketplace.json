@@ -1,15 +1,15 @@
 {
   "name": "bankstatemently",
-  "description": "Official Bankstatemently plugins — parse and query bank statements directly from Claude.",
+  "description": "Official Bankstatemently plugins — convert bank statements directly from Claude.",
   "owner": {
     "name": "Bankstatemently",
     "url": "https://bankstatemently.com"
   },
   "plugins": [
     {
-      "name": "bankstatemently-mcp",
-      "source": "./bankstatemently-mcp",
-      "description": "Parse and query bank statements via the Bankstatemently MCP server."
+      "name": "bankstatemently",
+      "source": "./bankstatemently",
+      "description": "Convert your bank statements into structured, queryable financial data — transactions, accounts, and balances from any PDF statement, then analyze them across every statement you've uploaded."
     }
   ]
 }

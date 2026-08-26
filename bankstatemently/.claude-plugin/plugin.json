@@ -1,0 +1,16 @@
+{
+  "name": "bankstatemently",
+  "version": "0.9.0",
+  "description": "Convert your bank statements into structured, queryable financial data — transactions, accounts, and balances from any PDF statement, then analyze them across every statement you've uploaded.",
+  "author": { "name": "Bankstatemently", "url": "https://bankstatemently.com" },
+  "defaultEnabled": false,
+  "userConfig": {
+    "api_key": {
+      "type": "string",
+      "title": "Bankstatemently API key (optional)",
+      "description": "Optional — leave blank to sign in with your browser (OAuth) on first use. Developers running headless (CI, scripts) may paste a bsk_live_... key instead.",
+      "sensitive": true
+    }
+  },
+  "mcpServers": "./.mcp.json"
+}
