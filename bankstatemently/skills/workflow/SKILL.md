@@ -20,6 +20,7 @@ no catalog is needed here.
 | `get_statement` | Free |
 | `categorize_statement` | Pooled per page (first run only) |
 | `list_statements` | Free |
+| `dismiss_statement` | Free |
 | `get_credits` | Free |
 | `rate_statement` | Free |
 | `list_transactions` | Free |

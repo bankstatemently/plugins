@@ -1,6 +1,6 @@
 {
   "name": "bankstatemently",
-  "version": "0.11.0",
+  "version": "0.12.0",
   "description": "Convert your bank statements into structured, queryable financial data — transactions, accounts, and balances from any PDF statement, then analyze them across every statement you've uploaded.",
   "author": {
     "name": "Bankstatemently",
@@ -15,7 +15,7 @@
   "interface": {
     "displayName": "Bankstatemently",
     "shortDescription": "Convert PDF bank statements into structured data.",
-    "longDescription": "Convert your bank statements into structured, queryable financial data — transactions, accounts, and balances from any PDF statement, then analyze them across every statement you've uploaded.\n\nLeave the API key blank to sign in with your browser on first use, or paste a bsk_live_ key for headless setups.\n\nTools: convert_statement, request_upload, get_statement, categorize_statement, list_statements, get_credits, rate_statement, list_transactions, aggregate, group_by, top_n, compare, time_series, list_transfers, evaluate_benchmark.",
+    "longDescription": "Convert your bank statements into structured, queryable financial data — transactions, accounts, and balances from any PDF statement, then analyze them across every statement you've uploaded.\n\nLeave the API key blank to sign in with your browser on first use, or paste a bsk_live_ key for headless setups.\n\nTools: convert_statement, request_upload, get_statement, categorize_statement, list_statements, dismiss_statement, get_credits, rate_statement, list_transactions, aggregate, group_by, top_n, compare, time_series, list_transfers, evaluate_benchmark.",
     "developerName": "Bankstatemently",
     "category": "Productivity",
     "capabilities": ["MCP", "Finance", "PDF parsing"],
