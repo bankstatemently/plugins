@@ -1,5 +1,5 @@
 ---
-name: bankstatemently
+name: workflow
 description: Workflow guidance for the Bankstatemently MCP tools — converting bank statement PDFs, listing statements, checking credits, categorizing transactions, rating conversions, and running benchmark evaluations. Use when working with the bankstatemently MCP server.
 ---
 
