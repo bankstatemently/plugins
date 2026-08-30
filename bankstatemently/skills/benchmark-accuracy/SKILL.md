@@ -1,12 +1,7 @@
 ---
-name: benchmark
+name: benchmark-accuracy
 description: Use when the user asks to convert and score a published Bankstatemently benchmark statement. Do not use for ordinary user-statement conversion, spending analysis, or reconciliation.
-disable-model-invocation: true
 ---
-
-<!-- generated from skills/benchmark-accuracy/SKILL.md — do not edit -->
-
-Input: $ARGUMENTS
 
 # Benchmark
 

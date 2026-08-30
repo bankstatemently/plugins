@@ -35,16 +35,27 @@ After installing, enable the plugin. When prompted for `api_key`, leave it blank
 
 **Try it free:** ask your agent to convert `https://bankstatemently.com/benchmark/statements/bsb-004-statement.pdf` — our published benchmark statement. Benchmark conversions never consume credits.
 
+## Skills
+
+The plugin bundles four OpenAI-format skills (also used as the source for Claude commands):
+
+| Skill | Use it for |
+|---|---|
+| `convert-statement` | Convert a statement from a file path, attachment, or public PDF URL, then fetch CSV, XLSX, QBO, or Xero exports. |
+| `analyze-spending` | Categorize a statement when needed, then group spending by category and merchant, rank top merchants, and build monthly trends. |
+| `reconcile-statements` | Review statement coverage, missing periods, balance-continuity breaks, and cross-account transfers. |
+| `benchmark-accuracy` | Convert a published Bankstatemently benchmark statement and score it against the benchmark catalog. |
+
 ## Commands
 
-The plugin bundles user-invoked commands for common jobs:
+The plugin bundles user-invoked commands for common jobs. Each command file is generated from its matching skill — do not edit `commands/*.md` by hand.
 
-| Command | Use it for |
-|---|---|
-| `/bankstatemently:convert` | Convert a statement from a file path, attachment, or public PDF URL, then fetch CSV, XLSX, QBO, or Xero exports. |
-| `/bankstatemently:analyze` | Categorize a statement when needed, then group spending by category and merchant, rank top merchants, and build monthly trends. |
-| `/bankstatemently:reconcile` | Review statement coverage, missing periods, balance-continuity breaks, and cross-account transfers. |
-| `/bankstatemently:benchmark` | Convert a published Bankstatemently benchmark statement and score it against the benchmark catalog. |
+| Command | Skill source | Use it for |
+|---|---|---|
+| `/bankstatemently:convert` | `convert-statement` | Convert a statement from a file path, attachment, or public PDF URL, then fetch CSV, XLSX, QBO, or Xero exports. |
+| `/bankstatemently:analyze` | `analyze-spending` | Categorize a statement when needed, then group spending by category and merchant, rank top merchants, and build monthly trends. |
+| `/bankstatemently:reconcile` | `reconcile-statements` | Review statement coverage, missing periods, balance-continuity breaks, and cross-account transfers. |
+| `/bankstatemently:benchmark` | `benchmark-accuracy` | Convert a published Bankstatemently benchmark statement and score it against the benchmark catalog. |
 
 ---
 

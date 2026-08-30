@@ -1,12 +1,7 @@
 ---
-name: analyze
+name: analyze-spending
 description: Use when the user asks to categorize spending, group by merchant or category, rank top merchants, or show monthly trends on converted statements. Do not use for first-time PDF conversion, period reconciliation, or benchmark scoring.
-disable-model-invocation: true
 ---
-
-<!-- generated from skills/analyze-spending/SKILL.md — do not edit -->
-
-Input: $ARGUMENTS
 
 # Analyze
 

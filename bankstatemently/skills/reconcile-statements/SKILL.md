@@ -1,12 +1,7 @@
 ---
-name: reconcile
+name: reconcile-statements
 description: Use when the user asks to check statement coverage, missing periods, balance continuity, or cross-account transfers. Do not use for converting a new PDF, spending categorization, or benchmark scoring.
-disable-model-invocation: true
 ---
-
-<!-- generated from skills/reconcile-statements/SKILL.md — do not edit -->
-
-Input: $ARGUMENTS
 
 # Reconcile
 

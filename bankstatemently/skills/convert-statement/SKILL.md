@@ -1,12 +1,7 @@
 ---
-name: convert
+name: convert-statement
 description: Use when the user attaches a bank statement PDF or asks for CSV/XLSX/QBO/Xero export of a converted statement. Do not use for spending analysis, reconciliation, or benchmark scoring — those have their own skills.
-disable-model-invocation: true
 ---
-
-<!-- generated from skills/convert-statement/SKILL.md — do not edit -->
-
-Input: $ARGUMENTS
 
 # Convert
 
