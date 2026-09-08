@@ -94,6 +94,26 @@ Codex doesn't yet surface plugin-declared MCP servers into sessions, so the plug
 
 ---
 
+## Run over stdio (Docker)
+
+For stdio-only clients that can launch Docker, build the image from the
+public repo and pass the key with `BANKSTATEMENTLY_API_KEY`:
+
+```bash
+docker build -t bankstatemently-mcp https://github.com/bankstatemently/plugins.git
+docker run -i -e BANKSTATEMENTLY_API_KEY=bsk_live_... bankstatemently-mcp
+```
+
+The image uses the same `mcp-remote` bridge shown above. If you do not set
+`BANKSTATEMENTLY_API_KEY`, the bridge sends no `X-API-Key` header, which keeps
+uncredentialed directory probes on the server's public initialize and tools-list
+path. For headless installs, export the key in the shell or runtime environment
+that launches Docker; do not resolve it inside the MCP command. `mcp-remote`
+logs resolved header values to stderr, so wrapper-resolved keys can end up in
+client logs.
+
+---
+
 ## Tools
 
 <!-- TOOLS_TABLE_START -->
