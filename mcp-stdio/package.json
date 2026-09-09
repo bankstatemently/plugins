@@ -1,0 +1,37 @@
+{
+  "name": "@bankstatemently/mcp",
+  "version": "0.13.0",
+  "description": "Self-contained stdio MCP server for Bankstatemently — convert bank statement PDFs into structured transactions, accounts, and balances. Calls the public Bankstatemently API (POST /v1/tools/:name) for every tool; carries no monorepo code — see `src/__tests__/selfContained.test.ts`.",
+  "type": "module",
+  "private": true,
+  "license": "MIT",
+  "bin": {
+    "bankstatemently-mcp": "./dist/stdio.js"
+  },
+  "main": "./dist/stdio.js",
+  "exports": {
+    ".": {
+      "types": "./dist/stdio.d.ts",
+      "development": "./src/stdio.ts",
+      "default": "./dist/stdio.js"
+    }
+  },
+  "files": [
+    "dist",
+    "tool-definitions.json"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "start": "node dist/stdio.js",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/server": "2.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^25.4.0",
+    "typescript": "^5.9.2",
+    "vitest": "^3.2.4"
+  }
+}

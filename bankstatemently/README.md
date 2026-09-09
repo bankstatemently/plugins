@@ -94,23 +94,28 @@ Codex doesn't yet surface plugin-declared MCP servers into sessions, so the plug
 
 ---
 
-## Run over stdio (Docker)
+## Run over stdio
 
-For stdio-only clients that can launch Docker, build the image from the
-public repo and pass the key with `BANKSTATEMENTLY_API_KEY`:
+For stdio-only clients (Claude Desktop's config file, Cursor, headless
+setups) or a directory scanner that launches the server locally, clone the
+public repo and run the self-contained `mcp-stdio` server directly — no
+Docker, no bridge process:
 
 ```bash
-docker build -t bankstatemently-mcp https://github.com/bankstatemently/plugins.git
-docker run -i -e BANKSTATEMENTLY_API_KEY=bsk_live_... bankstatemently-mcp
+git clone https://github.com/bankstatemently/plugins.git
+cd plugins/mcp-stdio
+npm install --omit=dev
+BANKSTATEMENTLY_API_KEY=bsk_live_... node dist/stdio.js
 ```
 
-The image uses the same `mcp-remote` bridge shown above. If you do not set
-`BANKSTATEMENTLY_API_KEY`, the bridge sends no `X-API-Key` header, which keeps
-uncredentialed directory probes on the server's public initialize and tools-list
-path. For headless installs, export the key in the shell or runtime environment
-that launches Docker; do not resolve it inside the MCP command. `mcp-remote`
-logs resolved header values to stderr, so wrapper-resolved keys can end up in
-client logs.
+`BANKSTATEMENTLY_API_KEY` is optional at startup: `initialize`/`tools/list`
+answer with no network call and no key either way, so an uncredentialed
+directory probe still sees the full tool list. A `tools/call` with no key
+returns the same auth-required result the hosted server returns. Export the
+key in the shell or runtime environment that launches the process — never
+resolve it inside the MCP command (a credential-manager lookup inside a
+sandboxed client's command dies silently, same caveat as the Codex section
+above).
 
 ---
 

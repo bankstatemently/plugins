@@ -1,0 +1,1833 @@
+{
+  "version": "0.13.0",
+  "instructions": "Bankstatemently converts bank statement PDFs into structured, queryable financial data. Workflow: convert_statement (or get_statement for an already-converted document) to parse a PDF, list_statements to browse past conversions, list_transactions/aggregate/group_by/etc. to query across them, and evaluate_benchmark to score extraction accuracy. \"Credits\" on this server means your processing quota (1 credit = 1 page) — NOT a transaction credit/debit. For \"how many credits do I have\" / remaining pages / plan limits, always call get_credits — never filter transactions for it.",
+  "authErrorResult": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"error\": \"Authentication required.\",\n  \"hint\": \"Connect (or re-link) your account via OAuth in your AI client's settings — this signs you in and, if you're new, creates a free Bankstatemently account with the free plan's credit grant. Developers running headless (CI, scripts) can instead provide an API key via the X-API-Key header in their MCP client configuration.\"\n}"
+      }
+    ],
+    "_meta": {
+      "mcp/www_authenticate": [
+        "Bearer resource_metadata=\"https://api.bankstatemently.com/.well-known/oauth-protected-resource/mcp\", error=\"invalid_token\", error_description=\"Authentication required — no valid credential was provided.\""
+      ]
+    },
+    "isError": true
+  },
+  "tools": [
+    {
+      "name": "request_upload",
+      "title": "Request Upload URL",
+      "description": "Mint a single-use upload URL for pushing a conversation-attached PDF to Bankstatemently before converting it. Use this ONLY when you have no other way to reference the attached file (no pdf_file/pdf_url equivalent for this host) — e.g. a code-execution sandbox that can see the file on disk but has no URL for it. Playbook: (1) check your sandbox's uploads/attachments directory first — if the file isn't there yet, the mount can lag behind the conversation; ask the user to re-attach or wait a moment and check again before calling this tool. (2) Call request_upload to get upload_url and upload_id. (3) PUT the raw PDF bytes to upload_url with header Content-Type: application/pdf, e.g.: `curl -X PUT \"<upload_url>\" -H \"Content-Type: application/pdf\" --data-binary @<path-to-file>`. (4) Once the PUT succeeds, call convert_statement with upload_id set to the same value — never pdf/pdf_url/pdf_file for this flow. The URL and token are single-use and expire quickly; call request_upload again for a fresh one if the PUT fails partway through — never retry a failed PUT against the same URL. If the PUT fails with a network error or a \"host not allowed\"-style denial, the sandbox is likely blocking outbound requests to api.bankstatemently.com — tell the user to add api.bankstatemently.com to their host's code-execution allowed-domains setting (on claude.ai: Settings → Capabilities → Code execution) and retry. To convert several statements at once, pass count (1-100) instead of calling this tool once per file: the response returns \"uploads\", an array of that many { upload_id, upload_url } pairs — PUT each file to its own upload_url, then make ONE convert_statement call with upload_ids set to every upload_id. Free to use — no credits consumed (conversion itself still costs credits, same as any other convert_statement call).",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "count": {
+            "description": "Batch size — mint this many independent single-use upload URLs in one call instead of calling request_upload once per file. When set, the response returns \"uploads\": an array of that many { upload_id, upload_url } pairs. Omit for the default single-URL response.",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          }
+        },
+        "$schema": "https://json-schema.org/draft/2020-12/schema"
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "convert_statement",
+      "title": "Convert Bank Statement",
+      "description": "Convert a bank statement PDF into structured data or a spreadsheet. When the user attaches a PDF in the conversation, it arrives automatically as pdf_file — never encode it yourself. Otherwise, pass pdf_url for a public HTTPS link. If your host has no way to reference the attached file at all (no pdf_file/pdf_url equivalent), call request_upload first and pass its upload_id here instead. The base64 pdf parameter is a last resort only, for a caller with no other way to reference the file. To convert several statements in one call, pass upload_ids (the array from a single request_upload call made with count set) instead of pdf/pdf_url/pdf_file/upload_id — mutually exclusive with those four. This batch form only ADMITS each file (queues it, or reports an already-completed duplicate) and returns immediately with a compact per-file status list plus a summary — it never waits for conversion, so call get_statement per document_id once ready rather than expecting inline results here. Returns accounts, transactions, and metadata. output_format \"json\" (default) returns the data inline, renderable in chat. The other formats (csv, xlsx, qbo, xero) return a time-limited download link instead: present it as a normal link. Every response includes a \"summary\" field: use it as the single source of truth for what happened. If the conversation is not in English, translate it faithfully into the conversation language; never add details it doesn't contain. Never echo raw status values (e.g. \"completed\") or field names. Consumes credits (1 per page). Page limit depends on your plan.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "pdf_file": {
+            "description": "An attached PDF (populated automatically by ChatGPT — do not construct this yourself).",
+            "type": "object",
+            "properties": {
+              "download_url": {
+                "type": "string",
+                "description": "Signed URL ChatGPT provides to fetch the attached PDF's bytes."
+              },
+              "file_id": {
+                "type": "string",
+                "description": "ChatGPT's identifier for the attached file."
+              },
+              "mime_type": {
+                "description": "MIME type of the attached file, when ChatGPT provides one.",
+                "type": "string"
+              },
+              "file_name": {
+                "description": "Original filename of the attached file, when ChatGPT provides one.",
+                "type": "string"
+              }
+            },
+            "required": [
+              "download_url",
+              "file_id"
+            ]
+          },
+          "pdf": {
+            "description": "Base64-encoded PDF content — last resort only; prefer pdf_file for an attachment or pdf_url for a link",
+            "type": "string"
+          },
+          "pdf_url": {
+            "description": "HTTPS URL to fetch the PDF from",
+            "type": "string",
+            "format": "uri"
+          },
+          "upload_id": {
+            "description": "An upload_id from request_upload, after PUTting the file to its upload_url. Use this only when your host has no other way to reference the attached file (no pdf_file/pdf_url equivalent).",
+            "type": "string"
+          },
+          "upload_ids": {
+            "description": "Batch of upload_ids from a single request_upload(count) call, each already PUT to its own upload_url — converts many statements in one call. Mutually exclusive with pdf, pdf_url, pdf_file, and upload_id. Admission only: the response reports per-file status immediately, never waiting for conversion — fetch results per document_id via get_statement.",
+            "minItems": 1,
+            "maxItems": 100,
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "password": {
+            "description": "Password for encrypted PDFs",
+            "type": "string"
+          },
+          "output_format": {
+            "default": "json",
+            "description": "Output format",
+            "type": "string",
+            "enum": [
+              "json",
+              "csv",
+              "xlsx",
+              "qbo",
+              "xero"
+            ]
+          }
+        },
+        "$schema": "https://json-schema.org/draft/2020-12/schema"
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "get_statement",
+      "title": "Get Statement Data",
+      "description": "Fetch the full converted data for a previously processed document. Use this after convert_statement returns a \"processing\" status, or to re-fetch results. output_format \"json\" (default) returns the data inline, renderable in chat. The other formats (csv, xlsx, qbo, xero) return a time-limited download link instead: present it as a normal link. data_mode selects which projection of the data you get: omit it for each output_format's existing default behavior. \"normalized\" is the cleaned, interpreted view; \"original\" includes each transaction's raw column values exactly as printed on the source PDF (originalData); \"enhanced\" is a reformatted view of the original columns (csv/xlsx only for now). Fetch data_mode: \"original\" when you plan to submit results to evaluate_benchmark — pass its originalData through verbatim; an absent originalData scores that benchmark's raw-fidelity dimension 0 for this document. Every response includes a \"summary\" field: use it as the single source of truth for what happened. If the conversation is not in English, translate it faithfully into the conversation language; never add details it doesn't contain. Never echo raw status values (e.g. \"completed\") or field names.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "document_id": {
+            "type": "string",
+            "description": "Document ID (from convert_statement or list_statements)"
+          },
+          "output_format": {
+            "default": "json",
+            "description": "Output format",
+            "type": "string",
+            "enum": [
+              "json",
+              "csv",
+              "xlsx",
+              "qbo",
+              "xero"
+            ]
+          },
+          "data_mode": {
+            "description": "Omit for each output_format's existing default behavior (json: normalized; csv/xlsx: the export route's own default). \"normalized\": the cleaned, interpreted data. \"original\": includes each transaction's raw column values as printed on the source PDF (originalData) — fetch this before submitting to evaluate_benchmark. \"enhanced\": a reformatted view of the original columns; only available for output_format csv/xlsx today. qbo/xero always export normalized data — omit data_mode (or pass \"normalized\" explicitly) for those formats.",
+            "type": "string",
+            "enum": [
+              "original",
+              "enhanced",
+              "normalized"
+            ]
+          },
+          "offset": {
+            "description": "output_format \"json\" only. Number of transactions to skip. Omit to start from the beginning.",
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "limit": {
+            "description": "output_format \"json\" only. Max transactions to return (default 500, capped at 2000, or 500 with data_mode \"original\").",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "document_id"
+        ],
+        "$schema": "https://json-schema.org/draft/2020-12/schema"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "categorize_statement",
+      "title": "Categorize Transactions",
+      "description": "Run AI transaction categorization on a previously processed document, then return its category mappings. Returns cached categories with no charge if this document was already categorized. Consumes credits (pooled per page, same rate as the categorize toggle on the website) the first time — free on every re-fetch after. Every response includes a \"summary\" field: use it as the single source of truth for what happened.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "document_id": {
+            "type": "string",
+            "description": "Document ID (from convert_statement or list_statements)"
+          }
+        },
+        "required": [
+          "document_id"
+        ],
+        "$schema": "https://json-schema.org/draft/2020-12/schema"
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "list_statements",
+      "title": "List Statements",
+      "description": "Browse your previously converted bank statements with pagination and optional status filter.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "default": 20,
+            "description": "Max results (1-100)",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          },
+          "offset": {
+            "default": 0,
+            "description": "Pagination offset",
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "status": {
+            "description": "Filter by status",
+            "type": "string",
+            "enum": [
+              "processing",
+              "completed",
+              "failed"
+            ]
+          }
+        },
+        "$schema": "https://json-schema.org/draft/2020-12/schema"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "dismiss_statement",
+      "title": "Dismiss Statement",
+      "description": "Hide a failed, rejected, or cancelled document from future list_statements results. Use this only when the user asks to clear a terminal failed/rejected/cancelled conversion from their history. This is not a delete: it marks the document dismissed and leaves stored data/artifacts untouched.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "document_id": {
+            "type": "string",
+            "description": "Document ID from list_statements, convert_statement, or get_statement"
+          }
+        },
+        "required": [
+          "document_id"
+        ],
+        "$schema": "https://json-schema.org/draft/2020-12/schema"
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "get_credits",
+      "title": "Get Credit Balance (processing quota)",
+      "description": "Your remaining Bankstatemently credits — the processing quota, NOT credit/debit transactions. Use for: how many credits do I have, remaining pages, plan limits, quota, how many pages can I upload. 1 credit = 1 page of bank statement processing. Also reports your plan's operational limits (max pages per upload, max upload size, daily spend cap) so you can size a multi-file batch correctly before starting it.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "$schema": "https://json-schema.org/draft/2020-12/schema"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "rate_statement",
+      "title": "Rate Statement Conversion",
+      "description": "Report how well a previously converted bank statement was parsed: submit a 1-5 rating, optionally with structured feedback (only accepted when the rating is 3 or below) and use-case tags. Calling this again for the same document updates your existing rating and clears any previous feedback tied to it. Returns the stored rating state in the response — there is no separate tool to read your own rating back. Every response includes a \"summary\" field: use it as the single source of truth for what happened.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "document_id": {
+            "type": "string",
+            "description": "Document ID (from convert_statement or list_statements)"
+          },
+          "rating": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 5,
+            "description": "1-5 star rating for this conversion"
+          },
+          "feedback_categories": {
+            "description": "Structured feedback categories. Only accepted when rating is 3 or below.",
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "missing_transactions",
+                "incorrect_amounts",
+                "export_issue",
+                "wrong_dates",
+                "formatting_issue",
+                "other"
+              ]
+            }
+          },
+          "feedback": {
+            "description": "Free-text feedback. Only accepted when rating is 3 or below.",
+            "type": "string",
+            "maxLength": 1000
+          },
+          "use_case": {
+            "description": "Tags describing what you use the converted data for.",
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "bookkeeping",
+                "tax_preparation",
+                "financial_analysis",
+                "audit_compliance",
+                "reconciliation",
+                "personal_finance",
+                "data_migration",
+                "other"
+              ]
+            }
+          },
+          "use_case_other": {
+            "description": "Free-text use case, for when \"other\" is among the use_case tags.",
+            "type": "string",
+            "maxLength": 500
+          },
+          "export_format": {
+            "description": "Which output format you exported this conversion to (csv, xlsx, qbo, or xero).",
+            "type": "string",
+            "enum": [
+              "csv",
+              "xlsx",
+              "qbo",
+              "xero"
+            ]
+          }
+        },
+        "required": [
+          "document_id",
+          "rating"
+        ],
+        "$schema": "https://json-schema.org/draft/2020-12/schema"
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "evaluate_benchmark",
+      "title": "Evaluate Benchmark",
+      "description": "Score parsed bank statement transactions against the Bankstatemently benchmark ground truth. Accepts a statement_id (e.g. \"bsb-001\") or content_hash, plus your parsed transactions. Returns extraction accuracy, integrity score, and an overall score. Only statements marked published: true in the catalog can be evaluated — held-out statements return an error. transactions[].originalData is optional but strongly recommended: fetch it via get_statement with data_mode: \"original\" and pass it through verbatim — an absent originalData scores that transaction's raw-fidelity (parsed) dimension 0; never fabricate a value. Free to use — no credits consumed. Read the benchmark://catalog resource first to see available statements and their published status.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "statement_id": {
+            "description": "Benchmark statement ID (e.g. \"bsb-001\"). Preferred over content_hash.",
+            "type": "string"
+          },
+          "content_hash": {
+            "description": "SHA-256 hex digest of the PDF. Use statement_id instead if you know it.",
+            "type": "string"
+          },
+          "accounts": {
+            "description": "Optional account roster for multi-account statements. Each transaction references one via accountId.",
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "Submission-internal handle, referenced by transactions[].accountId."
+                },
+                "accountNumber": {
+                  "description": "Verbatim printed account number — never normalized by the submitter.",
+                  "type": "string"
+                },
+                "name": {
+                  "description": "Verbatim printed account label.",
+                  "type": "string"
+                },
+                "currency": {
+                  "description": "ISO 4217 currency code.",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id"
+              ]
+            }
+          },
+          "transactions": {
+            "minItems": 1,
+            "maxItems": 2000,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "date": {
+                  "type": "string",
+                  "description": "ISO 8601 date (YYYY-MM-DD)"
+                },
+                "description": {
+                  "type": "string",
+                  "description": "Transaction description as printed on the statement."
+                },
+                "amount": {
+                  "type": "number",
+                  "description": "Transaction amount. Negative = debit, positive = credit (or use direction)."
+                },
+                "direction": {
+                  "description": "Explicit direction. If omitted, inferred from amount sign.",
+                  "type": "string",
+                  "enum": [
+                    "credit",
+                    "debit"
+                  ]
+                },
+                "balance": {
+                  "description": "Running balance after this transaction, if known.",
+                  "type": "number"
+                },
+                "currency": {
+                  "description": "ISO 4217 currency code for this transaction, if known.",
+                  "type": "string"
+                },
+                "originalData": {
+                  "description": "Raw column values as on the PDF. Omit if unavailable — never fabricate a value; an absence scores the parsed dimension's raw fields 0 rather than polluting the measurement.",
+                  "type": "object",
+                  "propertyNames": {
+                    "type": "string"
+                  },
+                  "additionalProperties": {
+                    "type": "string"
+                  }
+                },
+                "accountId": {
+                  "description": "References accounts[].id — the account this transaction belongs to. Omit for single-account statements.",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "date",
+                "description",
+                "amount"
+              ]
+            },
+            "description": "Parsed transactions (1-2000)"
+          }
+        },
+        "required": [
+          "transactions"
+        ],
+        "$schema": "https://json-schema.org/draft/2020-12/schema"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "list_transactions",
+      "title": "List Transactions",
+      "description": "A transaction is a single line as printed on one account's statement — one side of any movement. Return a filtered list of transactions across your converted statements, capped at 50 rows. Scope defaults to all your completed statements; pass \"scope\" to narrow to specific accounts/products and/or a date range. Every response names the scope it actually evaluated (document count + covered date range) and each returned row carries its source document's content_hash so you can cite it. For \"how many credits do I have\" / processing quota / remaining pages, use get_credits instead — that is not a transaction.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "filter": {
+            "type": "object",
+            "properties": {
+              "dateStart": {
+                "type": "string",
+                "description": "ISO date (YYYY-MM-DD). Inclusive lower bound."
+              },
+              "dateEnd": {
+                "type": "string",
+                "description": "ISO date (YYYY-MM-DD). Inclusive upper bound."
+              },
+              "accounts": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "Account number slugs to include."
+              },
+              "currency": {
+                "type": "string",
+                "description": "ISO 4217 currency code. E.g. \"USD\", \"HKD\"."
+              },
+              "text": {
+                "type": "string",
+                "description": "Whole-row text search over raw transaction fields (case-insensitive)."
+              },
+              "direction": {
+                "type": "string",
+                "enum": [
+                  "credit",
+                  "debit"
+                ],
+                "description": "Semantic direction."
+              },
+              "category": {
+                "type": "string",
+                "enum": [
+                  "income",
+                  "transfers",
+                  "payroll",
+                  "rent_premises",
+                  "utilities_telecom",
+                  "software_subscriptions",
+                  "professional_services",
+                  "bank_fees_interest",
+                  "taxes_government",
+                  "travel_vehicle",
+                  "meals_entertainment",
+                  "supplies_equipment",
+                  "insurance_health",
+                  "loan_payments",
+                  "groceries_personal",
+                  "cash",
+                  "other"
+                ],
+                "description": "Category slug, e.g. \"meals_entertainment\", \"groceries_personal\"."
+              },
+              "merchant": {
+                "type": "string",
+                "description": "Substring match against description or counterparty (case-insensitive)."
+              },
+              "amountMin": {
+                "type": "number",
+                "description": "Inclusive minimum absolute amount."
+              },
+              "amountMax": {
+                "type": "number",
+                "description": "Inclusive maximum absolute amount."
+              }
+            },
+            "description": "Subset of transactions to operate on. All fields are optional and combined with AND logic."
+          },
+          "limit": {
+            "type": "number",
+            "description": "Maximum rows to return. Default 20, max 50."
+          },
+          "sort_by": {
+            "type": "string",
+            "enum": [
+              "amount",
+              "date"
+            ],
+            "description": "Sort the filtered set before applying limit. \"amount\" ranks by absolute magnitude (signed amounts are still returned). Omit for today's default (encounter order)."
+          },
+          "order": {
+            "type": "string",
+            "enum": [
+              "asc",
+              "desc"
+            ],
+            "description": "Sort direction. Default \"desc\" (largest amount / most recent date first). Only meaningful with sort_by."
+          },
+          "scope": {
+            "description": "Optional structural scope (WHO × WHEN). Omit to search across all your completed statements. \"accounts\" is a list of account/product chips (kind + identityKey); \"dateRange\" bounds by transaction date (YYYY-MM-DD).",
+            "type": "object",
+            "properties": {
+              "accounts": {
+                "type": "array",
+                "items": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "const": "account",
+                          "description": "This chip addresses a single account."
+                        },
+                        "identityKey": {
+                          "type": "string",
+                          "minLength": 1,
+                          "description": "Canonical account identity key (accountIdentityKey), never a raw DB UUID."
+                        },
+                        "anchorContentHash": {
+                          "description": "Document-anchored lookup when present (results page); omit for a user-scoped lookup (workspace surfaces).",
+                          "type": "string"
+                        },
+                        "label": {
+                          "description": "Display label for this chip.",
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "identityKey"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "const": "product",
+                          "description": "This chip addresses a product and expands to its child accounts."
+                        },
+                        "identityKey": {
+                          "type": "string",
+                          "minLength": 1,
+                          "description": "Product slug."
+                        },
+                        "label": {
+                          "description": "Display label for this chip.",
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "identityKey"
+                      ]
+                    }
+                  ]
+                },
+                "description": "Account/product chips (kind + identityKey) to scope to. Empty = all accounts."
+              },
+              "dateRange": {
+                "description": "Bounds results to transactions within this date range. Omit for no date filter.",
+                "type": "object",
+                "properties": {
+                  "from": {
+                    "type": "string",
+                    "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+                    "description": "Start of the date range (inclusive), YYYY-MM-DD."
+                  },
+                  "to": {
+                    "type": "string",
+                    "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+                    "description": "End of the date range (inclusive), YYYY-MM-DD."
+                  }
+                },
+                "required": [
+                  "from",
+                  "to"
+                ]
+              }
+            },
+            "required": [
+              "accounts"
+            ]
+          }
+        },
+        "$schema": "https://json-schema.org/draft/2020-12/schema"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "aggregate",
+      "title": "Aggregate Transactions",
+      "description": "Compute a single metric (sum/average/count/max/min) over a filtered set of transactions across your converted statements. Results are per-currency — never sum across currencies yourself. Scope defaults to all your completed statements; pass \"scope\" to narrow to specific accounts/products and/or a date range. For \"how many credits do I have\" / processing quota / remaining pages, use get_credits instead — that is not a transaction.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "filter": {
+            "type": "object",
+            "properties": {
+              "dateStart": {
+                "type": "string",
+                "description": "ISO date (YYYY-MM-DD). Inclusive lower bound."
+              },
+              "dateEnd": {
+                "type": "string",
+                "description": "ISO date (YYYY-MM-DD). Inclusive upper bound."
+              },
+              "accounts": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "Account number slugs to include."
+              },
+              "currency": {
+                "type": "string",
+                "description": "ISO 4217 currency code. E.g. \"USD\", \"HKD\"."
+              },
+              "text": {
+                "type": "string",
+                "description": "Whole-row text search over raw transaction fields (case-insensitive)."
+              },
+              "direction": {
+                "type": "string",
+                "enum": [
+                  "credit",
+                  "debit"
+                ],
+                "description": "Semantic direction."
+              },
+              "category": {
+                "type": "string",
+                "enum": [
+                  "income",
+                  "transfers",
+                  "payroll",
+                  "rent_premises",
+                  "utilities_telecom",
+                  "software_subscriptions",
+                  "professional_services",
+                  "bank_fees_interest",
+                  "taxes_government",
+                  "travel_vehicle",
+                  "meals_entertainment",
+                  "supplies_equipment",
+                  "insurance_health",
+                  "loan_payments",
+                  "groceries_personal",
+                  "cash",
+                  "other"
+                ],
+                "description": "Category slug, e.g. \"meals_entertainment\", \"groceries_personal\"."
+              },
+              "merchant": {
+                "type": "string",
+                "description": "Substring match against description or counterparty (case-insensitive)."
+              },
+              "amountMin": {
+                "type": "number",
+                "description": "Inclusive minimum absolute amount."
+              },
+              "amountMax": {
+                "type": "number",
+                "description": "Inclusive maximum absolute amount."
+              }
+            },
+            "description": "Subset of transactions to operate on. All fields are optional and combined with AND logic."
+          },
+          "metric": {
+            "type": "string",
+            "enum": [
+              "sum",
+              "average",
+              "count",
+              "max",
+              "min"
+            ],
+            "description": "Aggregation metric."
+          },
+          "scope": {
+            "description": "Optional structural scope (WHO × WHEN). Omit to search across all your completed statements. \"accounts\" is a list of account/product chips (kind + identityKey); \"dateRange\" bounds by transaction date (YYYY-MM-DD).",
+            "type": "object",
+            "properties": {
+              "accounts": {
+                "type": "array",
+                "items": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "const": "account",
+                          "description": "This chip addresses a single account."
+                        },
+                        "identityKey": {
+                          "type": "string",
+                          "minLength": 1,
+                          "description": "Canonical account identity key (accountIdentityKey), never a raw DB UUID."
+                        },
+                        "anchorContentHash": {
+                          "description": "Document-anchored lookup when present (results page); omit for a user-scoped lookup (workspace surfaces).",
+                          "type": "string"
+                        },
+                        "label": {
+                          "description": "Display label for this chip.",
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "identityKey"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "const": "product",
+                          "description": "This chip addresses a product and expands to its child accounts."
+                        },
+                        "identityKey": {
+                          "type": "string",
+                          "minLength": 1,
+                          "description": "Product slug."
+                        },
+                        "label": {
+                          "description": "Display label for this chip.",
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "identityKey"
+                      ]
+                    }
+                  ]
+                },
+                "description": "Account/product chips (kind + identityKey) to scope to. Empty = all accounts."
+              },
+              "dateRange": {
+                "description": "Bounds results to transactions within this date range. Omit for no date filter.",
+                "type": "object",
+                "properties": {
+                  "from": {
+                    "type": "string",
+                    "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+                    "description": "Start of the date range (inclusive), YYYY-MM-DD."
+                  },
+                  "to": {
+                    "type": "string",
+                    "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+                    "description": "End of the date range (inclusive), YYYY-MM-DD."
+                  }
+                },
+                "required": [
+                  "from",
+                  "to"
+                ]
+              }
+            },
+            "required": [
+              "accounts"
+            ]
+          }
+        },
+        "required": [
+          "metric"
+        ],
+        "$schema": "https://json-schema.org/draft/2020-12/schema"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "group_by",
+      "title": "Group Transactions",
+      "description": "Group transactions by a dimension (month/category/merchant/account/currency) and apply a metric to each group. Results are per-currency. Scope defaults to all your completed statements; pass \"scope\" to narrow to specific accounts/products and/or a date range.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "filter": {
+            "type": "object",
+            "properties": {
+              "dateStart": {
+                "type": "string",
+                "description": "ISO date (YYYY-MM-DD). Inclusive lower bound."
+              },
+              "dateEnd": {
+                "type": "string",
+                "description": "ISO date (YYYY-MM-DD). Inclusive upper bound."
+              },
+              "accounts": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "Account number slugs to include."
+              },
+              "currency": {
+                "type": "string",
+                "description": "ISO 4217 currency code. E.g. \"USD\", \"HKD\"."
+              },
+              "text": {
+                "type": "string",
+                "description": "Whole-row text search over raw transaction fields (case-insensitive)."
+              },
+              "direction": {
+                "type": "string",
+                "enum": [
+                  "credit",
+                  "debit"
+                ],
+                "description": "Semantic direction."
+              },
+              "category": {
+                "type": "string",
+                "enum": [
+                  "income",
+                  "transfers",
+                  "payroll",
+                  "rent_premises",
+                  "utilities_telecom",
+                  "software_subscriptions",
+                  "professional_services",
+                  "bank_fees_interest",
+                  "taxes_government",
+                  "travel_vehicle",
+                  "meals_entertainment",
+                  "supplies_equipment",
+                  "insurance_health",
+                  "loan_payments",
+                  "groceries_personal",
+                  "cash",
+                  "other"
+                ],
+                "description": "Category slug, e.g. \"meals_entertainment\", \"groceries_personal\"."
+              },
+              "merchant": {
+                "type": "string",
+                "description": "Substring match against description or counterparty (case-insensitive)."
+              },
+              "amountMin": {
+                "type": "number",
+                "description": "Inclusive minimum absolute amount."
+              },
+              "amountMax": {
+                "type": "number",
+                "description": "Inclusive maximum absolute amount."
+              }
+            },
+            "description": "Subset of transactions to operate on. All fields are optional and combined with AND logic."
+          },
+          "dimension": {
+            "type": "string",
+            "enum": [
+              "month",
+              "category",
+              "merchant",
+              "account",
+              "currency"
+            ],
+            "description": "Grouping dimension."
+          },
+          "metric": {
+            "type": "string",
+            "enum": [
+              "sum",
+              "average",
+              "count",
+              "max",
+              "min"
+            ],
+            "description": "Metric per group."
+          },
+          "scope": {
+            "description": "Optional structural scope (WHO × WHEN). Omit to search across all your completed statements. \"accounts\" is a list of account/product chips (kind + identityKey); \"dateRange\" bounds by transaction date (YYYY-MM-DD).",
+            "type": "object",
+            "properties": {
+              "accounts": {
+                "type": "array",
+                "items": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "const": "account",
+                          "description": "This chip addresses a single account."
+                        },
+                        "identityKey": {
+                          "type": "string",
+                          "minLength": 1,
+                          "description": "Canonical account identity key (accountIdentityKey), never a raw DB UUID."
+                        },
+                        "anchorContentHash": {
+                          "description": "Document-anchored lookup when present (results page); omit for a user-scoped lookup (workspace surfaces).",
+                          "type": "string"
+                        },
+                        "label": {
+                          "description": "Display label for this chip.",
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "identityKey"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "const": "product",
+                          "description": "This chip addresses a product and expands to its child accounts."
+                        },
+                        "identityKey": {
+                          "type": "string",
+                          "minLength": 1,
+                          "description": "Product slug."
+                        },
+                        "label": {
+                          "description": "Display label for this chip.",
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "identityKey"
+                      ]
+                    }
+                  ]
+                },
+                "description": "Account/product chips (kind + identityKey) to scope to. Empty = all accounts."
+              },
+              "dateRange": {
+                "description": "Bounds results to transactions within this date range. Omit for no date filter.",
+                "type": "object",
+                "properties": {
+                  "from": {
+                    "type": "string",
+                    "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+                    "description": "Start of the date range (inclusive), YYYY-MM-DD."
+                  },
+                  "to": {
+                    "type": "string",
+                    "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+                    "description": "End of the date range (inclusive), YYYY-MM-DD."
+                  }
+                },
+                "required": [
+                  "from",
+                  "to"
+                ]
+              }
+            },
+            "required": [
+              "accounts"
+            ]
+          }
+        },
+        "required": [
+          "dimension",
+          "metric"
+        ],
+        "$schema": "https://json-schema.org/draft/2020-12/schema"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "top_n",
+      "title": "Top N Transactions",
+      "description": "Return the top N groups ranked by metric (descending), per-currency for monetary metrics. Scope defaults to all your completed statements; pass \"scope\" to narrow to specific accounts/products and/or a date range.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "filter": {
+            "type": "object",
+            "properties": {
+              "dateStart": {
+                "type": "string",
+                "description": "ISO date (YYYY-MM-DD). Inclusive lower bound."
+              },
+              "dateEnd": {
+                "type": "string",
+                "description": "ISO date (YYYY-MM-DD). Inclusive upper bound."
+              },
+              "accounts": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "Account number slugs to include."
+              },
+              "currency": {
+                "type": "string",
+                "description": "ISO 4217 currency code. E.g. \"USD\", \"HKD\"."
+              },
+              "text": {
+                "type": "string",
+                "description": "Whole-row text search over raw transaction fields (case-insensitive)."
+              },
+              "direction": {
+                "type": "string",
+                "enum": [
+                  "credit",
+                  "debit"
+                ],
+                "description": "Semantic direction."
+              },
+              "category": {
+                "type": "string",
+                "enum": [
+                  "income",
+                  "transfers",
+                  "payroll",
+                  "rent_premises",
+                  "utilities_telecom",
+                  "software_subscriptions",
+                  "professional_services",
+                  "bank_fees_interest",
+                  "taxes_government",
+                  "travel_vehicle",
+                  "meals_entertainment",
+                  "supplies_equipment",
+                  "insurance_health",
+                  "loan_payments",
+                  "groceries_personal",
+                  "cash",
+                  "other"
+                ],
+                "description": "Category slug, e.g. \"meals_entertainment\", \"groceries_personal\"."
+              },
+              "merchant": {
+                "type": "string",
+                "description": "Substring match against description or counterparty (case-insensitive)."
+              },
+              "amountMin": {
+                "type": "number",
+                "description": "Inclusive minimum absolute amount."
+              },
+              "amountMax": {
+                "type": "number",
+                "description": "Inclusive maximum absolute amount."
+              }
+            },
+            "description": "Subset of transactions to operate on. All fields are optional and combined with AND logic."
+          },
+          "dimension": {
+            "type": "string",
+            "enum": [
+              "month",
+              "category",
+              "merchant",
+              "account",
+              "currency"
+            ],
+            "description": "Grouping dimension."
+          },
+          "metric": {
+            "type": "string",
+            "enum": [
+              "sum",
+              "average",
+              "count",
+              "max",
+              "min"
+            ],
+            "description": "Metric to rank by."
+          },
+          "n": {
+            "type": "number",
+            "description": "Number of top groups to return."
+          },
+          "scope": {
+            "description": "Optional structural scope (WHO × WHEN). Omit to search across all your completed statements. \"accounts\" is a list of account/product chips (kind + identityKey); \"dateRange\" bounds by transaction date (YYYY-MM-DD).",
+            "type": "object",
+            "properties": {
+              "accounts": {
+                "type": "array",
+                "items": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "const": "account",
+                          "description": "This chip addresses a single account."
+                        },
+                        "identityKey": {
+                          "type": "string",
+                          "minLength": 1,
+                          "description": "Canonical account identity key (accountIdentityKey), never a raw DB UUID."
+                        },
+                        "anchorContentHash": {
+                          "description": "Document-anchored lookup when present (results page); omit for a user-scoped lookup (workspace surfaces).",
+                          "type": "string"
+                        },
+                        "label": {
+                          "description": "Display label for this chip.",
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "identityKey"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "const": "product",
+                          "description": "This chip addresses a product and expands to its child accounts."
+                        },
+                        "identityKey": {
+                          "type": "string",
+                          "minLength": 1,
+                          "description": "Product slug."
+                        },
+                        "label": {
+                          "description": "Display label for this chip.",
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "identityKey"
+                      ]
+                    }
+                  ]
+                },
+                "description": "Account/product chips (kind + identityKey) to scope to. Empty = all accounts."
+              },
+              "dateRange": {
+                "description": "Bounds results to transactions within this date range. Omit for no date filter.",
+                "type": "object",
+                "properties": {
+                  "from": {
+                    "type": "string",
+                    "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+                    "description": "Start of the date range (inclusive), YYYY-MM-DD."
+                  },
+                  "to": {
+                    "type": "string",
+                    "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+                    "description": "End of the date range (inclusive), YYYY-MM-DD."
+                  }
+                },
+                "required": [
+                  "from",
+                  "to"
+                ]
+              }
+            },
+            "required": [
+              "accounts"
+            ]
+          }
+        },
+        "required": [
+          "dimension",
+          "metric",
+          "n"
+        ],
+        "$schema": "https://json-schema.org/draft/2020-12/schema"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "compare",
+      "title": "Compare Transaction Groups",
+      "description": "Side-by-side metric comparison for two filtered groups of transactions (e.g. one category vs another, one month vs another). Scope defaults to all your completed statements; pass \"scope\" to narrow to specific accounts/products and/or a date range.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "filterA": {
+            "type": "object",
+            "properties": {
+              "dateStart": {
+                "type": "string",
+                "description": "ISO date (YYYY-MM-DD). Inclusive lower bound."
+              },
+              "dateEnd": {
+                "type": "string",
+                "description": "ISO date (YYYY-MM-DD). Inclusive upper bound."
+              },
+              "accounts": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "Account number slugs to include."
+              },
+              "currency": {
+                "type": "string",
+                "description": "ISO 4217 currency code. E.g. \"USD\", \"HKD\"."
+              },
+              "text": {
+                "type": "string",
+                "description": "Whole-row text search over raw transaction fields (case-insensitive)."
+              },
+              "direction": {
+                "type": "string",
+                "enum": [
+                  "credit",
+                  "debit"
+                ],
+                "description": "Semantic direction."
+              },
+              "category": {
+                "type": "string",
+                "enum": [
+                  "income",
+                  "transfers",
+                  "payroll",
+                  "rent_premises",
+                  "utilities_telecom",
+                  "software_subscriptions",
+                  "professional_services",
+                  "bank_fees_interest",
+                  "taxes_government",
+                  "travel_vehicle",
+                  "meals_entertainment",
+                  "supplies_equipment",
+                  "insurance_health",
+                  "loan_payments",
+                  "groceries_personal",
+                  "cash",
+                  "other"
+                ],
+                "description": "Category slug, e.g. \"meals_entertainment\", \"groceries_personal\"."
+              },
+              "merchant": {
+                "type": "string",
+                "description": "Substring match against description or counterparty (case-insensitive)."
+              },
+              "amountMin": {
+                "type": "number",
+                "description": "Inclusive minimum absolute amount."
+              },
+              "amountMax": {
+                "type": "number",
+                "description": "Inclusive maximum absolute amount."
+              }
+            },
+            "description": "Subset of transactions to operate on. All fields are optional and combined with AND logic."
+          },
+          "filterB": {
+            "type": "object",
+            "properties": {
+              "dateStart": {
+                "type": "string",
+                "description": "ISO date (YYYY-MM-DD). Inclusive lower bound."
+              },
+              "dateEnd": {
+                "type": "string",
+                "description": "ISO date (YYYY-MM-DD). Inclusive upper bound."
+              },
+              "accounts": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "Account number slugs to include."
+              },
+              "currency": {
+                "type": "string",
+                "description": "ISO 4217 currency code. E.g. \"USD\", \"HKD\"."
+              },
+              "text": {
+                "type": "string",
+                "description": "Whole-row text search over raw transaction fields (case-insensitive)."
+              },
+              "direction": {
+                "type": "string",
+                "enum": [
+                  "credit",
+                  "debit"
+                ],
+                "description": "Semantic direction."
+              },
+              "category": {
+                "type": "string",
+                "enum": [
+                  "income",
+                  "transfers",
+                  "payroll",
+                  "rent_premises",
+                  "utilities_telecom",
+                  "software_subscriptions",
+                  "professional_services",
+                  "bank_fees_interest",
+                  "taxes_government",
+                  "travel_vehicle",
+                  "meals_entertainment",
+                  "supplies_equipment",
+                  "insurance_health",
+                  "loan_payments",
+                  "groceries_personal",
+                  "cash",
+                  "other"
+                ],
+                "description": "Category slug, e.g. \"meals_entertainment\", \"groceries_personal\"."
+              },
+              "merchant": {
+                "type": "string",
+                "description": "Substring match against description or counterparty (case-insensitive)."
+              },
+              "amountMin": {
+                "type": "number",
+                "description": "Inclusive minimum absolute amount."
+              },
+              "amountMax": {
+                "type": "number",
+                "description": "Inclusive maximum absolute amount."
+              }
+            },
+            "description": "Subset of transactions to operate on. All fields are optional and combined with AND logic."
+          },
+          "metric": {
+            "type": "string",
+            "enum": [
+              "sum",
+              "average",
+              "count",
+              "max",
+              "min"
+            ],
+            "description": "Metric for both groups."
+          },
+          "scope": {
+            "description": "Optional structural scope (WHO × WHEN). Omit to search across all your completed statements. \"accounts\" is a list of account/product chips (kind + identityKey); \"dateRange\" bounds by transaction date (YYYY-MM-DD).",
+            "type": "object",
+            "properties": {
+              "accounts": {
+                "type": "array",
+                "items": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "const": "account",
+                          "description": "This chip addresses a single account."
+                        },
+                        "identityKey": {
+                          "type": "string",
+                          "minLength": 1,
+                          "description": "Canonical account identity key (accountIdentityKey), never a raw DB UUID."
+                        },
+                        "anchorContentHash": {
+                          "description": "Document-anchored lookup when present (results page); omit for a user-scoped lookup (workspace surfaces).",
+                          "type": "string"
+                        },
+                        "label": {
+                          "description": "Display label for this chip.",
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "identityKey"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "const": "product",
+                          "description": "This chip addresses a product and expands to its child accounts."
+                        },
+                        "identityKey": {
+                          "type": "string",
+                          "minLength": 1,
+                          "description": "Product slug."
+                        },
+                        "label": {
+                          "description": "Display label for this chip.",
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "identityKey"
+                      ]
+                    }
+                  ]
+                },
+                "description": "Account/product chips (kind + identityKey) to scope to. Empty = all accounts."
+              },
+              "dateRange": {
+                "description": "Bounds results to transactions within this date range. Omit for no date filter.",
+                "type": "object",
+                "properties": {
+                  "from": {
+                    "type": "string",
+                    "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+                    "description": "Start of the date range (inclusive), YYYY-MM-DD."
+                  },
+                  "to": {
+                    "type": "string",
+                    "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+                    "description": "End of the date range (inclusive), YYYY-MM-DD."
+                  }
+                },
+                "required": [
+                  "from",
+                  "to"
+                ]
+              }
+            },
+            "required": [
+              "accounts"
+            ]
+          }
+        },
+        "required": [
+          "filterA",
+          "filterB",
+          "metric"
+        ],
+        "$schema": "https://json-schema.org/draft/2020-12/schema"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "time_series",
+      "title": "Transaction Time Series",
+      "description": "Compute a time series by grouping transactions into week or month buckets and applying a metric — useful for trends. Scope defaults to all your completed statements; pass \"scope\" to narrow to specific accounts/products and/or a date range.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "filter": {
+            "type": "object",
+            "properties": {
+              "dateStart": {
+                "type": "string",
+                "description": "ISO date (YYYY-MM-DD). Inclusive lower bound."
+              },
+              "dateEnd": {
+                "type": "string",
+                "description": "ISO date (YYYY-MM-DD). Inclusive upper bound."
+              },
+              "accounts": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "Account number slugs to include."
+              },
+              "currency": {
+                "type": "string",
+                "description": "ISO 4217 currency code. E.g. \"USD\", \"HKD\"."
+              },
+              "text": {
+                "type": "string",
+                "description": "Whole-row text search over raw transaction fields (case-insensitive)."
+              },
+              "direction": {
+                "type": "string",
+                "enum": [
+                  "credit",
+                  "debit"
+                ],
+                "description": "Semantic direction."
+              },
+              "category": {
+                "type": "string",
+                "enum": [
+                  "income",
+                  "transfers",
+                  "payroll",
+                  "rent_premises",
+                  "utilities_telecom",
+                  "software_subscriptions",
+                  "professional_services",
+                  "bank_fees_interest",
+                  "taxes_government",
+                  "travel_vehicle",
+                  "meals_entertainment",
+                  "supplies_equipment",
+                  "insurance_health",
+                  "loan_payments",
+                  "groceries_personal",
+                  "cash",
+                  "other"
+                ],
+                "description": "Category slug, e.g. \"meals_entertainment\", \"groceries_personal\"."
+              },
+              "merchant": {
+                "type": "string",
+                "description": "Substring match against description or counterparty (case-insensitive)."
+              },
+              "amountMin": {
+                "type": "number",
+                "description": "Inclusive minimum absolute amount."
+              },
+              "amountMax": {
+                "type": "number",
+                "description": "Inclusive maximum absolute amount."
+              }
+            },
+            "description": "Subset of transactions to operate on. All fields are optional and combined with AND logic."
+          },
+          "bucket": {
+            "type": "string",
+            "enum": [
+              "week",
+              "month"
+            ],
+            "description": "Bucket size."
+          },
+          "metric": {
+            "type": "string",
+            "enum": [
+              "sum",
+              "average",
+              "count",
+              "max",
+              "min"
+            ],
+            "description": "Metric per bucket."
+          },
+          "scope": {
+            "description": "Optional structural scope (WHO × WHEN). Omit to search across all your completed statements. \"accounts\" is a list of account/product chips (kind + identityKey); \"dateRange\" bounds by transaction date (YYYY-MM-DD).",
+            "type": "object",
+            "properties": {
+              "accounts": {
+                "type": "array",
+                "items": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "const": "account",
+                          "description": "This chip addresses a single account."
+                        },
+                        "identityKey": {
+                          "type": "string",
+                          "minLength": 1,
+                          "description": "Canonical account identity key (accountIdentityKey), never a raw DB UUID."
+                        },
+                        "anchorContentHash": {
+                          "description": "Document-anchored lookup when present (results page); omit for a user-scoped lookup (workspace surfaces).",
+                          "type": "string"
+                        },
+                        "label": {
+                          "description": "Display label for this chip.",
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "identityKey"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "const": "product",
+                          "description": "This chip addresses a product and expands to its child accounts."
+                        },
+                        "identityKey": {
+                          "type": "string",
+                          "minLength": 1,
+                          "description": "Product slug."
+                        },
+                        "label": {
+                          "description": "Display label for this chip.",
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "identityKey"
+                      ]
+                    }
+                  ]
+                },
+                "description": "Account/product chips (kind + identityKey) to scope to. Empty = all accounts."
+              },
+              "dateRange": {
+                "description": "Bounds results to transactions within this date range. Omit for no date filter.",
+                "type": "object",
+                "properties": {
+                  "from": {
+                    "type": "string",
+                    "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+                    "description": "Start of the date range (inclusive), YYYY-MM-DD."
+                  },
+                  "to": {
+                    "type": "string",
+                    "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+                    "description": "End of the date range (inclusive), YYYY-MM-DD."
+                  }
+                },
+                "required": [
+                  "from",
+                  "to"
+                ]
+              }
+            },
+            "required": [
+              "accounts"
+            ]
+          }
+        },
+        "required": [
+          "bucket",
+          "metric"
+        ],
+        "$schema": "https://json-schema.org/draft/2020-12/schema"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "list_transfers",
+      "title": "Match Transfers Between Accounts",
+      "description": "Match transfers between your own accounts. A transfer is TWO transactions — a debit leaving one of your accounts and a credit arriving in another — matched as two sides of the same movement (amount and date aligned); account-level successions (an account closing into a successor) are matched too. A payment to an outside party is not a transfer here: only movements with both sides visible in your statements are matched. THE way to answer any \"was money moved between my accounts\" / \"did I transfer X\" question — never try to answer a money-moved-between-accounts question with list_transactions + arithmetic; always call this tool instead. Scope defaults to all your completed statements; pass \"scope\" to narrow to specific accounts/products and/or a date range. Every response reports the match window (in days) it used, even when no transfers are found — a lack of matches is never silent about how hard it looked. To find large movements with NO matching counterpart in your other accounts — e.g. \"trace transfers over $10,000; which ones leave without a known destination?\" — pass \"amountMin\": reconciled pairs and successions are filtered to that floor, and the response gains an \"unmatched\" bucket of large movements (debits leaving, or unexplained credits arriving) with no matching pair, candidate, or succession. Omit amountMin for the ordinary reconciled-pairs answer.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "amountMin": {
+            "type": "number",
+            "description": "Inclusive minimum absolute amount. When present, transfers/accountSuccessions are floored to this amount and the response gains an \"unmatched\" bucket of large movements with no matching counterpart. Omit for the ordinary reconciled-pairs answer."
+          },
+          "scope": {
+            "description": "Optional structural scope (WHO × WHEN). Omit to search across all your completed statements. \"accounts\" is a list of account/product chips (kind + identityKey); \"dateRange\" bounds by transaction date (YYYY-MM-DD).",
+            "type": "object",
+            "properties": {
+              "accounts": {
+                "type": "array",
+                "items": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "const": "account",
+                          "description": "This chip addresses a single account."
+                        },
+                        "identityKey": {
+                          "type": "string",
+                          "minLength": 1,
+                          "description": "Canonical account identity key (accountIdentityKey), never a raw DB UUID."
+                        },
+                        "anchorContentHash": {
+                          "description": "Document-anchored lookup when present (results page); omit for a user-scoped lookup (workspace surfaces).",
+                          "type": "string"
+                        },
+                        "label": {
+                          "description": "Display label for this chip.",
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "identityKey"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "const": "product",
+                          "description": "This chip addresses a product and expands to its child accounts."
+                        },
+                        "identityKey": {
+                          "type": "string",
+                          "minLength": 1,
+                          "description": "Product slug."
+                        },
+                        "label": {
+                          "description": "Display label for this chip.",
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "identityKey"
+                      ]
+                    }
+                  ]
+                },
+                "description": "Account/product chips (kind + identityKey) to scope to. Empty = all accounts."
+              },
+              "dateRange": {
+                "description": "Bounds results to transactions within this date range. Omit for no date filter.",
+                "type": "object",
+                "properties": {
+                  "from": {
+                    "type": "string",
+                    "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+                    "description": "Start of the date range (inclusive), YYYY-MM-DD."
+                  },
+                  "to": {
+                    "type": "string",
+                    "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+                    "description": "End of the date range (inclusive), YYYY-MM-DD."
+                  }
+                },
+                "required": [
+                  "from",
+                  "to"
+                ]
+              }
+            },
+            "required": [
+              "accounts"
+            ]
+          }
+        },
+        "$schema": "https://json-schema.org/draft/2020-12/schema"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": false
+      }
+    }
+  ]
+}
