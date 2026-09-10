@@ -1,5 +1,5 @@
 {
-  "version": "0.13.0",
+  "version": "0.14.0",
   "instructions": "Bankstatemently converts bank statement PDFs into structured, queryable financial data. Workflow: convert_statement (or get_statement for an already-converted document) to parse a PDF, list_statements to browse past conversions, list_transactions/aggregate/group_by/etc. to query across them, and evaluate_benchmark to score extraction accuracy. \"Credits\" on this server means your processing quota (1 credit = 1 page) — NOT a transaction credit/debit. For \"how many credits do I have\" / remaining pages / plan limits, always call get_credits — never filter transactions for it.",
   "authErrorResult": {
     "content": [
@@ -115,7 +115,7 @@
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
-        "openWorldHint": false
+        "openWorldHint": true
       }
     },
     {
@@ -255,13 +255,13 @@
       },
       "annotations": {
         "readOnlyHint": false,
-        "destructiveHint": false,
+        "destructiveHint": true,
         "openWorldHint": false
       }
     },
     {
       "name": "get_credits",
-      "title": "Get Credit Balance (processing quota)",
+      "title": "Get Credit Balance",
       "description": "Your remaining Bankstatemently credits — the processing quota, NOT credit/debit transactions. Use for: how many credits do I have, remaining pages, plan limits, quota, how many pages can I upload. 1 credit = 1 page of bank statement processing. Also reports your plan's operational limits (max pages per upload, max upload size, daily spend cap) so you can size a multi-file batch correctly before starting it.",
       "inputSchema": {
         "type": "object",
@@ -277,7 +277,7 @@
     {
       "name": "rate_statement",
       "title": "Rate Statement Conversion",
-      "description": "Report how well a previously converted bank statement was parsed: submit a 1-5 rating, optionally with structured feedback (only accepted when the rating is 3 or below) and use-case tags. Calling this again for the same document updates your existing rating and clears any previous feedback tied to it. Returns the stored rating state in the response — there is no separate tool to read your own rating back. Every response includes a \"summary\" field: use it as the single source of truth for what happened.",
+      "description": "Report how well a previously converted bank statement was parsed: submit a 1-5 rating, optionally with structured feedback (only accepted when the rating is 3 or below) and use-case tags. Calling this again for the same document updates your existing rating without clearing feedback already submitted for it. Returns the stored rating state in the response — there is no separate tool to read your own rating back. Every response includes a \"summary\" field: use it as the single source of truth for what happened.",
       "inputSchema": {
         "type": "object",
         "properties": {

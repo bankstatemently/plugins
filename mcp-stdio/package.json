@@ -1,6 +1,6 @@
 {
   "name": "@bankstatemently/mcp",
-  "version": "0.13.0",
+  "version": "0.14.0",
   "description": "Self-contained stdio MCP server for Bankstatemently — convert bank statement PDFs into structured transactions, accounts, and balances. Calls the public Bankstatemently API (POST /v1/tools/:name) for every tool; carries no monorepo code — see `src/__tests__/selfContained.test.ts`.",
   "type": "module",
   "private": true,
