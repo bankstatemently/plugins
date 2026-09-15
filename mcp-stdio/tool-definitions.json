@@ -32,10 +32,57 @@
         },
         "$schema": "https://json-schema.org/draft/2020-12/schema"
       },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "upload_id": {
+            "type": "string"
+          },
+          "upload_url": {
+            "type": "string"
+          },
+          "expires_at": {
+            "type": "string"
+          },
+          "max_bytes": {
+            "type": "number"
+          },
+          "uploads": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "upload_id": {
+                  "type": "string"
+                },
+                "upload_url": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "upload_id",
+                "upload_url"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false
+      },
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
         "openWorldHint": false
+      },
+      "_meta": {
+        "securitySchemes": [
+          {
+            "type": "oauth2"
+          }
+        ],
+        "openai/toolInvocation/invoking": "Preparing an upload link…",
+        "openai/toolInvocation/invoked": "Upload link ready"
       }
     },
     {
@@ -112,10 +159,813 @@
         },
         "$schema": "https://json-schema.org/draft/2020-12/schema"
       },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string"
+          },
+          "documentId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "document": {
+            "type": "object",
+            "properties": {
+              "documentType": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "bank": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "bankId": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "country": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "currency": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "languages": {
+                "anyOf": [
+                  {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "pageCount": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "statementDate": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "statementPeriod": {
+                "type": "object",
+                "properties": {
+                  "from": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "to": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "from",
+                  "to"
+                ],
+                "additionalProperties": false
+              },
+              "statements": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "date": {
+                      "type": "string"
+                    },
+                    "period": {
+                      "type": "object",
+                      "properties": {
+                        "from": {
+                          "type": "string"
+                        },
+                        "to": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "from",
+                        "to"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "products": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "productId": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "productName": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "currency": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "declared": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "propertyNames": {
+                                "type": "string"
+                              },
+                              "additionalProperties": {
+                                "$ref": "#/$defs/__schema0"
+                              }
+                            }
+                          },
+                          "categories": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "propertyNames": {
+                                "type": "string"
+                              },
+                              "additionalProperties": {
+                                "$ref": "#/$defs/__schema0"
+                              }
+                            }
+                          },
+                          "accounts": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "accountId": {
+                                  "anyOf": [
+                                    {
+                                      "type": "number"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "accountNumber": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "cardNumber": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "accountHolderName": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "currency": {
+                                  "type": "string"
+                                },
+                                "totals": {
+                                  "type": "object",
+                                  "properties": {
+                                    "openingBalance": {
+                                      "anyOf": [
+                                        {
+                                          "type": "number"
+                                        },
+                                        {
+                                          "type": "null"
+                                        }
+                                      ]
+                                    },
+                                    "closingBalance": {
+                                      "anyOf": [
+                                        {
+                                          "type": "number"
+                                        },
+                                        {
+                                          "type": "null"
+                                        }
+                                      ]
+                                    },
+                                    "totalCredits": {
+                                      "anyOf": [
+                                        {
+                                          "type": "number"
+                                        },
+                                        {
+                                          "type": "null"
+                                        }
+                                      ]
+                                    },
+                                    "totalDebits": {
+                                      "anyOf": [
+                                        {
+                                          "type": "number"
+                                        },
+                                        {
+                                          "type": "null"
+                                        }
+                                      ]
+                                    }
+                                  },
+                                  "additionalProperties": false
+                                },
+                                "declared": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "propertyNames": {
+                                      "type": "string"
+                                    },
+                                    "additionalProperties": {
+                                      "$ref": "#/$defs/__schema0"
+                                    }
+                                  }
+                                },
+                                "categories": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "propertyNames": {
+                                      "type": "string"
+                                    },
+                                    "additionalProperties": {
+                                      "$ref": "#/$defs/__schema0"
+                                    }
+                                  }
+                                },
+                                "transactions": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "sequence": {
+                                        "type": "number"
+                                      },
+                                      "date": {
+                                        "type": "string"
+                                      },
+                                      "description": {
+                                        "type": "string"
+                                      },
+                                      "amount": {
+                                        "anyOf": [
+                                          {
+                                            "type": "number"
+                                          },
+                                          {
+                                            "type": "string"
+                                          }
+                                        ]
+                                      },
+                                      "direction": {
+                                        "anyOf": [
+                                          {
+                                            "type": "string"
+                                          },
+                                          {
+                                            "type": "null"
+                                          }
+                                        ]
+                                      },
+                                      "currency": {
+                                        "type": "string"
+                                      },
+                                      "balance": {
+                                        "anyOf": [
+                                          {
+                                            "type": "number"
+                                          },
+                                          {
+                                            "type": "string"
+                                          }
+                                        ]
+                                      },
+                                      "accountId": {
+                                        "type": "number"
+                                      },
+                                      "reference": {
+                                        "type": "string"
+                                      },
+                                      "checkNumber": {
+                                        "type": "string"
+                                      },
+                                      "category": {
+                                        "type": "string"
+                                      },
+                                      "originalData": {
+                                        "type": "object",
+                                        "propertyNames": {
+                                          "type": "string"
+                                        },
+                                        "additionalProperties": {
+                                          "type": "string"
+                                        }
+                                      }
+                                    },
+                                    "required": [
+                                      "sequence",
+                                      "date",
+                                      "description",
+                                      "amount",
+                                      "direction",
+                                      "currency"
+                                    ],
+                                    "additionalProperties": false
+                                  }
+                                }
+                              },
+                              "required": [
+                                "accountId"
+                              ],
+                              "additionalProperties": false
+                            }
+                          }
+                        },
+                        "required": [
+                          "productId",
+                          "productName",
+                          "currency",
+                          "accounts"
+                        ],
+                        "additionalProperties": {}
+                      }
+                    }
+                  },
+                  "required": [
+                    "products"
+                  ],
+                  "additionalProperties": {}
+                }
+              }
+            },
+            "additionalProperties": {}
+          },
+          "confidenceScore": {
+            "type": "number"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "message": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "code",
+                "message"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "transactionCount": {
+            "type": "number"
+          },
+          "exportUrl": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "pagination": {
+            "type": "object",
+            "properties": {
+              "total": {
+                "type": "number"
+              },
+              "limit": {
+                "type": "number"
+              },
+              "offset": {
+                "type": "number"
+              },
+              "hasMore": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "total",
+              "limit",
+              "offset",
+              "hasMore"
+            ],
+            "additionalProperties": false
+          },
+          "gating": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "previewMode": {
+                    "type": "boolean"
+                  },
+                  "accessMode": {
+                    "type": "string",
+                    "enum": [
+                      "paid",
+                      "free_processed"
+                    ]
+                  },
+                  "previewPageLimit": {
+                    "anyOf": [
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "previewPages": {
+                    "type": "array",
+                    "items": {
+                      "type": "number"
+                    }
+                  },
+                  "hiddenTransactionPages": {
+                    "type": "number"
+                  },
+                  "processedPages": {
+                    "type": "number"
+                  },
+                  "totalPages": {
+                    "type": "number"
+                  },
+                  "totalTransactionCount": {
+                    "type": "number"
+                  },
+                  "previewTransactionCount": {
+                    "type": "number"
+                  },
+                  "unlocked": {
+                    "type": "boolean"
+                  },
+                  "requiresPlanUpgrade": {
+                    "type": "boolean"
+                  },
+                  "resultQuality": {
+                    "type": "string",
+                    "enum": [
+                      "verified",
+                      "partial",
+                      "unverified"
+                    ]
+                  },
+                  "gatedRecipe": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "enum": [
+                          "template-first",
+                          "vlm-learning"
+                        ]
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "previewMode",
+                  "accessMode",
+                  "previewPageLimit",
+                  "previewPages",
+                  "hiddenTransactionPages",
+                  "processedPages",
+                  "totalPages",
+                  "totalTransactionCount",
+                  "previewTransactionCount",
+                  "unlocked",
+                  "requiresPlanUpgrade",
+                  "resultQuality",
+                  "gatedRecipe"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "dataMode": {
+            "type": "string"
+          },
+          "columns": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "columnName": {
+                  "type": "string"
+                },
+                "role": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "columnName",
+                "role"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "transactions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "propertyNames": {
+                "type": "string"
+              },
+              "additionalProperties": {
+                "type": "string"
+              }
+            }
+          },
+          "message": {
+            "type": "string"
+          },
+          "hint": {
+            "type": "string"
+          },
+          "error": {
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "processingStage": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "processingProgress": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "pagesProcessed": {
+                    "type": "number"
+                  },
+                  "totalPages": {
+                    "type": "number"
+                  },
+                  "pass": {
+                    "type": "object",
+                    "properties": {
+                      "number": {
+                        "type": "number"
+                      },
+                      "startedAt": {
+                        "type": "number"
+                      }
+                    },
+                    "required": [
+                      "number",
+                      "startedAt"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "pagesProcessed",
+                  "totalPages"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "estimateSeconds": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "elapsedMs": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "pass": {
+                    "type": "number"
+                  },
+                  "total": {
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "pass",
+                  "total"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "results": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "upload_id": {
+                  "type": "string"
+                },
+                "content_hash": {
+                  "type": "string"
+                },
+                "status": {
+                  "type": "string"
+                },
+                "duplicate": {
+                  "type": "boolean"
+                },
+                "error_code": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "upload_id"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false,
+        "$defs": {
+          "__schema0": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/__schema0"
+                }
+              },
+              {
+                "type": "object",
+                "propertyNames": {
+                  "type": "string"
+                },
+                "additionalProperties": {
+                  "$ref": "#/$defs/__schema0"
+                }
+              }
+            ]
+          }
+        }
+      },
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
         "openWorldHint": true
+      },
+      "_meta": {
+        "securitySchemes": [
+          {
+            "type": "oauth2"
+          }
+        ],
+        "openai/toolInvocation/invoking": "Converting your bank statement…",
+        "openai/toolInvocation/invoked": "Bank statement converted",
+        "openai/fileParams": [
+          "pdf_file"
+        ]
       }
     },
     {
@@ -168,10 +1018,810 @@
         ],
         "$schema": "https://json-schema.org/draft/2020-12/schema"
       },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string"
+          },
+          "documentId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "document": {
+            "type": "object",
+            "properties": {
+              "documentType": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "bank": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "bankId": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "country": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "currency": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "languages": {
+                "anyOf": [
+                  {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "pageCount": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "statementDate": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "statementPeriod": {
+                "type": "object",
+                "properties": {
+                  "from": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "to": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "from",
+                  "to"
+                ],
+                "additionalProperties": false
+              },
+              "statements": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "date": {
+                      "type": "string"
+                    },
+                    "period": {
+                      "type": "object",
+                      "properties": {
+                        "from": {
+                          "type": "string"
+                        },
+                        "to": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "from",
+                        "to"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "products": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "productId": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "productName": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "currency": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "declared": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "propertyNames": {
+                                "type": "string"
+                              },
+                              "additionalProperties": {
+                                "$ref": "#/$defs/__schema0"
+                              }
+                            }
+                          },
+                          "categories": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "propertyNames": {
+                                "type": "string"
+                              },
+                              "additionalProperties": {
+                                "$ref": "#/$defs/__schema0"
+                              }
+                            }
+                          },
+                          "accounts": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "accountId": {
+                                  "anyOf": [
+                                    {
+                                      "type": "number"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "accountNumber": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "cardNumber": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "accountHolderName": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "currency": {
+                                  "type": "string"
+                                },
+                                "totals": {
+                                  "type": "object",
+                                  "properties": {
+                                    "openingBalance": {
+                                      "anyOf": [
+                                        {
+                                          "type": "number"
+                                        },
+                                        {
+                                          "type": "null"
+                                        }
+                                      ]
+                                    },
+                                    "closingBalance": {
+                                      "anyOf": [
+                                        {
+                                          "type": "number"
+                                        },
+                                        {
+                                          "type": "null"
+                                        }
+                                      ]
+                                    },
+                                    "totalCredits": {
+                                      "anyOf": [
+                                        {
+                                          "type": "number"
+                                        },
+                                        {
+                                          "type": "null"
+                                        }
+                                      ]
+                                    },
+                                    "totalDebits": {
+                                      "anyOf": [
+                                        {
+                                          "type": "number"
+                                        },
+                                        {
+                                          "type": "null"
+                                        }
+                                      ]
+                                    }
+                                  },
+                                  "additionalProperties": false
+                                },
+                                "declared": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "propertyNames": {
+                                      "type": "string"
+                                    },
+                                    "additionalProperties": {
+                                      "$ref": "#/$defs/__schema0"
+                                    }
+                                  }
+                                },
+                                "categories": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "propertyNames": {
+                                      "type": "string"
+                                    },
+                                    "additionalProperties": {
+                                      "$ref": "#/$defs/__schema0"
+                                    }
+                                  }
+                                },
+                                "transactions": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "sequence": {
+                                        "type": "number"
+                                      },
+                                      "date": {
+                                        "type": "string"
+                                      },
+                                      "description": {
+                                        "type": "string"
+                                      },
+                                      "amount": {
+                                        "anyOf": [
+                                          {
+                                            "type": "number"
+                                          },
+                                          {
+                                            "type": "string"
+                                          }
+                                        ]
+                                      },
+                                      "direction": {
+                                        "anyOf": [
+                                          {
+                                            "type": "string"
+                                          },
+                                          {
+                                            "type": "null"
+                                          }
+                                        ]
+                                      },
+                                      "currency": {
+                                        "type": "string"
+                                      },
+                                      "balance": {
+                                        "anyOf": [
+                                          {
+                                            "type": "number"
+                                          },
+                                          {
+                                            "type": "string"
+                                          }
+                                        ]
+                                      },
+                                      "accountId": {
+                                        "type": "number"
+                                      },
+                                      "reference": {
+                                        "type": "string"
+                                      },
+                                      "checkNumber": {
+                                        "type": "string"
+                                      },
+                                      "category": {
+                                        "type": "string"
+                                      },
+                                      "originalData": {
+                                        "type": "object",
+                                        "propertyNames": {
+                                          "type": "string"
+                                        },
+                                        "additionalProperties": {
+                                          "type": "string"
+                                        }
+                                      }
+                                    },
+                                    "required": [
+                                      "sequence",
+                                      "date",
+                                      "description",
+                                      "amount",
+                                      "direction",
+                                      "currency"
+                                    ],
+                                    "additionalProperties": false
+                                  }
+                                }
+                              },
+                              "required": [
+                                "accountId"
+                              ],
+                              "additionalProperties": false
+                            }
+                          }
+                        },
+                        "required": [
+                          "productId",
+                          "productName",
+                          "currency",
+                          "accounts"
+                        ],
+                        "additionalProperties": {}
+                      }
+                    }
+                  },
+                  "required": [
+                    "products"
+                  ],
+                  "additionalProperties": {}
+                }
+              }
+            },
+            "additionalProperties": {}
+          },
+          "confidenceScore": {
+            "type": "number"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "message": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "code",
+                "message"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "transactionCount": {
+            "type": "number"
+          },
+          "exportUrl": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "pagination": {
+            "type": "object",
+            "properties": {
+              "total": {
+                "type": "number"
+              },
+              "limit": {
+                "type": "number"
+              },
+              "offset": {
+                "type": "number"
+              },
+              "hasMore": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "total",
+              "limit",
+              "offset",
+              "hasMore"
+            ],
+            "additionalProperties": false
+          },
+          "gating": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "previewMode": {
+                    "type": "boolean"
+                  },
+                  "accessMode": {
+                    "type": "string",
+                    "enum": [
+                      "paid",
+                      "free_processed"
+                    ]
+                  },
+                  "previewPageLimit": {
+                    "anyOf": [
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "previewPages": {
+                    "type": "array",
+                    "items": {
+                      "type": "number"
+                    }
+                  },
+                  "hiddenTransactionPages": {
+                    "type": "number"
+                  },
+                  "processedPages": {
+                    "type": "number"
+                  },
+                  "totalPages": {
+                    "type": "number"
+                  },
+                  "totalTransactionCount": {
+                    "type": "number"
+                  },
+                  "previewTransactionCount": {
+                    "type": "number"
+                  },
+                  "unlocked": {
+                    "type": "boolean"
+                  },
+                  "requiresPlanUpgrade": {
+                    "type": "boolean"
+                  },
+                  "resultQuality": {
+                    "type": "string",
+                    "enum": [
+                      "verified",
+                      "partial",
+                      "unverified"
+                    ]
+                  },
+                  "gatedRecipe": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "enum": [
+                          "template-first",
+                          "vlm-learning"
+                        ]
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "previewMode",
+                  "accessMode",
+                  "previewPageLimit",
+                  "previewPages",
+                  "hiddenTransactionPages",
+                  "processedPages",
+                  "totalPages",
+                  "totalTransactionCount",
+                  "previewTransactionCount",
+                  "unlocked",
+                  "requiresPlanUpgrade",
+                  "resultQuality",
+                  "gatedRecipe"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "dataMode": {
+            "type": "string"
+          },
+          "columns": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "columnName": {
+                  "type": "string"
+                },
+                "role": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "columnName",
+                "role"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "transactions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "propertyNames": {
+                "type": "string"
+              },
+              "additionalProperties": {
+                "type": "string"
+              }
+            }
+          },
+          "message": {
+            "type": "string"
+          },
+          "hint": {
+            "type": "string"
+          },
+          "error": {
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "processingStage": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "processingProgress": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "pagesProcessed": {
+                    "type": "number"
+                  },
+                  "totalPages": {
+                    "type": "number"
+                  },
+                  "pass": {
+                    "type": "object",
+                    "properties": {
+                      "number": {
+                        "type": "number"
+                      },
+                      "startedAt": {
+                        "type": "number"
+                      }
+                    },
+                    "required": [
+                      "number",
+                      "startedAt"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "pagesProcessed",
+                  "totalPages"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "estimateSeconds": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "elapsedMs": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "pass": {
+                    "type": "number"
+                  },
+                  "total": {
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "pass",
+                  "total"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "results": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "upload_id": {
+                  "type": "string"
+                },
+                "content_hash": {
+                  "type": "string"
+                },
+                "status": {
+                  "type": "string"
+                },
+                "duplicate": {
+                  "type": "boolean"
+                },
+                "error_code": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "upload_id"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false,
+        "$defs": {
+          "__schema0": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/__schema0"
+                }
+              },
+              {
+                "type": "object",
+                "propertyNames": {
+                  "type": "string"
+                },
+                "additionalProperties": {
+                  "$ref": "#/$defs/__schema0"
+                }
+              }
+            ]
+          }
+        }
+      },
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
         "openWorldHint": false
+      },
+      "_meta": {
+        "securitySchemes": [
+          {
+            "type": "oauth2"
+          }
+        ],
+        "openai/toolInvocation/invoking": "Fetching your statement…",
+        "openai/toolInvocation/invoked": "Statement ready"
       }
     },
     {
@@ -191,10 +1841,56 @@
         ],
         "$schema": "https://json-schema.org/draft/2020-12/schema"
       },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string"
+          },
+          "documentId": {
+            "type": "string"
+          },
+          "categoryMappings": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "message": {
+            "type": "string"
+          },
+          "hint": {
+            "type": "string"
+          },
+          "error": {
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false
+      },
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
         "openWorldHint": false
+      },
+      "_meta": {
+        "securitySchemes": [
+          {
+            "type": "oauth2"
+          }
+        ],
+        "openai/toolInvocation/invoking": "Categorizing your transactions…",
+        "openai/toolInvocation/invoked": "Transactions categorized"
       }
     },
     {
@@ -230,10 +1926,238 @@
         },
         "$schema": "https://json-schema.org/draft/2020-12/schema"
       },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "documents": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "status": {
+                  "type": "string"
+                },
+                "filename": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "pageCount": {
+                  "anyOf": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "createdAt": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "summary": {
+                  "type": "string"
+                },
+                "bank": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "country": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "currency": {
+                  "type": "string"
+                },
+                "transactionCount": {
+                  "anyOf": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "error": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "processingStage": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "processingProgress": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "pagesProcessed": {
+                          "type": "number"
+                        },
+                        "totalPages": {
+                          "type": "number"
+                        },
+                        "pass": {
+                          "type": "object",
+                          "properties": {
+                            "number": {
+                              "type": "number"
+                            },
+                            "startedAt": {
+                              "type": "number"
+                            }
+                          },
+                          "required": [
+                            "number",
+                            "startedAt"
+                          ],
+                          "additionalProperties": false
+                        }
+                      },
+                      "required": [
+                        "pagesProcessed",
+                        "totalPages"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "estimateSeconds": {
+                  "anyOf": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "elapsedMs": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "pass": {
+                          "type": "number"
+                        },
+                        "total": {
+                          "type": "number"
+                        }
+                      },
+                      "required": [
+                        "pass",
+                        "total"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "id",
+                "status"
+              ],
+              "additionalProperties": {}
+            }
+          },
+          "pagination": {
+            "type": "object",
+            "properties": {
+              "total": {
+                "type": "number"
+              },
+              "limit": {
+                "type": "number"
+              },
+              "offset": {
+                "type": "number"
+              },
+              "hasMore": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "total",
+              "limit",
+              "offset",
+              "hasMore"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "documents",
+          "pagination"
+        ],
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false
+      },
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
         "openWorldHint": false
+      },
+      "_meta": {
+        "securitySchemes": [
+          {
+            "type": "oauth2"
+          }
+        ],
+        "openai/toolInvocation/invoking": "Looking up your statements…",
+        "openai/toolInvocation/invoked": "Statements found"
       }
     },
     {
@@ -253,10 +2177,40 @@
         ],
         "$schema": "https://json-schema.org/draft/2020-12/schema"
       },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string"
+          },
+          "documentId": {
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "documentId",
+          "summary"
+        ],
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false
+      },
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": true,
         "openWorldHint": false
+      },
+      "_meta": {
+        "securitySchemes": [
+          {
+            "type": "oauth2"
+          }
+        ],
+        "openai/toolInvocation/invoking": "Dismissing statement…",
+        "openai/toolInvocation/invoked": "Statement dismissed"
       }
     },
     {
@@ -268,10 +2222,97 @@
         "properties": {},
         "$schema": "https://json-schema.org/draft/2020-12/schema"
       },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "balance": {
+            "type": "number"
+          },
+          "limit": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "planId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "creditsExpireAt": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "plan": {
+            "type": "object",
+            "properties": {
+              "maxPagesPerUpload": {
+                "type": "number"
+              },
+              "maxUploadSizeMb": {
+                "type": "number"
+              },
+              "dailySpendCap": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "maxPagesPerUpload",
+              "maxUploadSizeMb",
+              "dailySpendCap"
+            ],
+            "additionalProperties": false
+          },
+          "summary": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "balance",
+          "limit",
+          "planId",
+          "creditsExpireAt",
+          "plan",
+          "summary"
+        ],
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false
+      },
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
         "openWorldHint": false
+      },
+      "_meta": {
+        "securitySchemes": [
+          {
+            "type": "oauth2"
+          }
+        ],
+        "openai/toolInvocation/invoking": "Checking your credit balance…",
+        "openai/toolInvocation/invoked": "Balance checked"
       }
     },
     {
@@ -350,10 +2391,69 @@
         ],
         "$schema": "https://json-schema.org/draft/2020-12/schema"
       },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string"
+          },
+          "documentId": {
+            "type": "string"
+          },
+          "rating": {
+            "type": "number"
+          },
+          "hasFeedback": {
+            "type": "boolean"
+          },
+          "useCase": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "useCaseOther": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "message": {
+            "type": "string"
+          },
+          "hint": {
+            "type": "string"
+          },
+          "error": {
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false
+      },
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
         "openWorldHint": false
+      },
+      "_meta": {
+        "securitySchemes": [
+          {
+            "type": "oauth2"
+          }
+        ],
+        "openai/toolInvocation/invoking": "Submitting your rating…",
+        "openai/toolInvocation/invoked": "Rating submitted"
       }
     },
     {
@@ -464,10 +2564,102 @@
         ],
         "$schema": "https://json-schema.org/draft/2020-12/schema"
       },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "contentHash": {
+            "type": "string"
+          },
+          "datasetVersion": {
+            "type": "string"
+          },
+          "difficulty": {
+            "type": "string"
+          },
+          "challenges": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "normalizedScore": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {
+              "$ref": "#/$defs/__schema0"
+            }
+          },
+          "parsedScore": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {
+              "$ref": "#/$defs/__schema0"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "difficulty",
+          "challenges",
+          "normalizedScore",
+          "parsedScore"
+        ],
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false,
+        "$defs": {
+          "__schema0": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/__schema0"
+                }
+              },
+              {
+                "type": "object",
+                "propertyNames": {
+                  "type": "string"
+                },
+                "additionalProperties": {
+                  "$ref": "#/$defs/__schema0"
+                }
+              }
+            ]
+          }
+        }
+      },
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
         "openWorldHint": false
+      },
+      "_meta": {
+        "securitySchemes": [
+          {
+            "type": "oauth2"
+          }
+        ],
+        "openai/toolInvocation/invoking": "Scoring extraction accuracy…",
+        "openai/toolInvocation/invoked": "Benchmark scored"
       }
     },
     {
@@ -659,10 +2851,156 @@
         },
         "$schema": "https://json-schema.org/draft/2020-12/schema"
       },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "scope": {
+            "type": "object",
+            "properties": {
+              "documentCount": {
+                "type": "number"
+              },
+              "dateRange": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "from": {
+                        "type": "string"
+                      },
+                      "to": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "from",
+                      "to"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "documentCount",
+              "dateRange"
+            ],
+            "additionalProperties": false
+          },
+          "transactions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "date": {
+                  "type": "string"
+                },
+                "description": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "direction": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "amount": {
+                  "anyOf": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "string"
+                    }
+                  ]
+                },
+                "category": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "account": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "sourceDocument": {
+                  "type": "object",
+                  "properties": {
+                    "contentHash": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "contentHash"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "required": [
+                "date",
+                "description",
+                "direction",
+                "amount",
+                "category",
+                "account",
+                "sourceDocument"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "scope",
+          "transactions"
+        ],
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false
+      },
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
         "openWorldHint": false
+      },
+      "_meta": {
+        "securitySchemes": [
+          {
+            "type": "oauth2"
+          }
+        ],
+        "openai/toolInvocation/invoking": "Listing transactions…",
+        "openai/toolInvocation/invoked": "Transactions listed"
       }
     },
     {
@@ -848,10 +3186,124 @@
         ],
         "$schema": "https://json-schema.org/draft/2020-12/schema"
       },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "scope": {
+            "type": "object",
+            "properties": {
+              "documentCount": {
+                "type": "number"
+              },
+              "dateRange": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "from": {
+                        "type": "string"
+                      },
+                      "to": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "from",
+                      "to"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "documentCount",
+              "dateRange"
+            ],
+            "additionalProperties": false
+          },
+          "result": {
+            "anyOf": [
+              {
+                "type": "object",
+                "propertyNames": {
+                  "type": "string"
+                },
+                "additionalProperties": {
+                  "$ref": "#/$defs/__schema0"
+                }
+              },
+              {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "propertyNames": {
+                    "type": "string"
+                  },
+                  "additionalProperties": {
+                    "$ref": "#/$defs/__schema0"
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "required": [
+          "scope",
+          "result"
+        ],
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false,
+        "$defs": {
+          "__schema0": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/__schema0"
+                }
+              },
+              {
+                "type": "object",
+                "propertyNames": {
+                  "type": "string"
+                },
+                "additionalProperties": {
+                  "$ref": "#/$defs/__schema0"
+                }
+              }
+            ]
+          }
+        }
+      },
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
         "openWorldHint": false
+      },
+      "_meta": {
+        "securitySchemes": [
+          {
+            "type": "oauth2"
+          }
+        ],
+        "openai/toolInvocation/invoking": "Aggregating transactions…",
+        "openai/toolInvocation/invoked": "Aggregation computed"
       }
     },
     {
@@ -1049,10 +3501,124 @@
         ],
         "$schema": "https://json-schema.org/draft/2020-12/schema"
       },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "scope": {
+            "type": "object",
+            "properties": {
+              "documentCount": {
+                "type": "number"
+              },
+              "dateRange": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "from": {
+                        "type": "string"
+                      },
+                      "to": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "from",
+                      "to"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "documentCount",
+              "dateRange"
+            ],
+            "additionalProperties": false
+          },
+          "result": {
+            "anyOf": [
+              {
+                "type": "object",
+                "propertyNames": {
+                  "type": "string"
+                },
+                "additionalProperties": {
+                  "$ref": "#/$defs/__schema0"
+                }
+              },
+              {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "propertyNames": {
+                    "type": "string"
+                  },
+                  "additionalProperties": {
+                    "$ref": "#/$defs/__schema0"
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "required": [
+          "scope",
+          "result"
+        ],
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false,
+        "$defs": {
+          "__schema0": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/__schema0"
+                }
+              },
+              {
+                "type": "object",
+                "propertyNames": {
+                  "type": "string"
+                },
+                "additionalProperties": {
+                  "$ref": "#/$defs/__schema0"
+                }
+              }
+            ]
+          }
+        }
+      },
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
         "openWorldHint": false
+      },
+      "_meta": {
+        "securitySchemes": [
+          {
+            "type": "oauth2"
+          }
+        ],
+        "openai/toolInvocation/invoking": "Grouping transactions…",
+        "openai/toolInvocation/invoked": "Groups computed"
       }
     },
     {
@@ -1255,10 +3821,124 @@
         ],
         "$schema": "https://json-schema.org/draft/2020-12/schema"
       },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "scope": {
+            "type": "object",
+            "properties": {
+              "documentCount": {
+                "type": "number"
+              },
+              "dateRange": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "from": {
+                        "type": "string"
+                      },
+                      "to": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "from",
+                      "to"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "documentCount",
+              "dateRange"
+            ],
+            "additionalProperties": false
+          },
+          "result": {
+            "anyOf": [
+              {
+                "type": "object",
+                "propertyNames": {
+                  "type": "string"
+                },
+                "additionalProperties": {
+                  "$ref": "#/$defs/__schema0"
+                }
+              },
+              {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "propertyNames": {
+                    "type": "string"
+                  },
+                  "additionalProperties": {
+                    "$ref": "#/$defs/__schema0"
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "required": [
+          "scope",
+          "result"
+        ],
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false,
+        "$defs": {
+          "__schema0": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/__schema0"
+                }
+              },
+              {
+                "type": "object",
+                "propertyNames": {
+                  "type": "string"
+                },
+                "additionalProperties": {
+                  "$ref": "#/$defs/__schema0"
+                }
+              }
+            ]
+          }
+        }
+      },
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
         "openWorldHint": false
+      },
+      "_meta": {
+        "securitySchemes": [
+          {
+            "type": "oauth2"
+          }
+        ],
+        "openai/toolInvocation/invoking": "Ranking transactions…",
+        "openai/toolInvocation/invoked": "Ranking computed"
       }
     },
     {
@@ -1518,10 +4198,124 @@
         ],
         "$schema": "https://json-schema.org/draft/2020-12/schema"
       },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "scope": {
+            "type": "object",
+            "properties": {
+              "documentCount": {
+                "type": "number"
+              },
+              "dateRange": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "from": {
+                        "type": "string"
+                      },
+                      "to": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "from",
+                      "to"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "documentCount",
+              "dateRange"
+            ],
+            "additionalProperties": false
+          },
+          "result": {
+            "anyOf": [
+              {
+                "type": "object",
+                "propertyNames": {
+                  "type": "string"
+                },
+                "additionalProperties": {
+                  "$ref": "#/$defs/__schema0"
+                }
+              },
+              {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "propertyNames": {
+                    "type": "string"
+                  },
+                  "additionalProperties": {
+                    "$ref": "#/$defs/__schema0"
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "required": [
+          "scope",
+          "result"
+        ],
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false,
+        "$defs": {
+          "__schema0": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/__schema0"
+                }
+              },
+              {
+                "type": "object",
+                "propertyNames": {
+                  "type": "string"
+                },
+                "additionalProperties": {
+                  "$ref": "#/$defs/__schema0"
+                }
+              }
+            ]
+          }
+        }
+      },
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
         "openWorldHint": false
+      },
+      "_meta": {
+        "securitySchemes": [
+          {
+            "type": "oauth2"
+          }
+        ],
+        "openai/toolInvocation/invoking": "Comparing transaction groups…",
+        "openai/toolInvocation/invoked": "Comparison computed"
       }
     },
     {
@@ -1716,10 +4510,124 @@
         ],
         "$schema": "https://json-schema.org/draft/2020-12/schema"
       },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "scope": {
+            "type": "object",
+            "properties": {
+              "documentCount": {
+                "type": "number"
+              },
+              "dateRange": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "from": {
+                        "type": "string"
+                      },
+                      "to": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "from",
+                      "to"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "documentCount",
+              "dateRange"
+            ],
+            "additionalProperties": false
+          },
+          "result": {
+            "anyOf": [
+              {
+                "type": "object",
+                "propertyNames": {
+                  "type": "string"
+                },
+                "additionalProperties": {
+                  "$ref": "#/$defs/__schema0"
+                }
+              },
+              {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "propertyNames": {
+                    "type": "string"
+                  },
+                  "additionalProperties": {
+                    "$ref": "#/$defs/__schema0"
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "required": [
+          "scope",
+          "result"
+        ],
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false,
+        "$defs": {
+          "__schema0": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/__schema0"
+                }
+              },
+              {
+                "type": "object",
+                "propertyNames": {
+                  "type": "string"
+                },
+                "additionalProperties": {
+                  "$ref": "#/$defs/__schema0"
+                }
+              }
+            ]
+          }
+        }
+      },
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
         "openWorldHint": false
+      },
+      "_meta": {
+        "securitySchemes": [
+          {
+            "type": "oauth2"
+          }
+        ],
+        "openai/toolInvocation/invoking": "Computing time series…",
+        "openai/toolInvocation/invoked": "Time series computed"
       }
     },
     {
@@ -1823,10 +4731,285 @@
         },
         "$schema": "https://json-schema.org/draft/2020-12/schema"
       },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "scope": {
+            "type": "object",
+            "properties": {
+              "documentCount": {
+                "type": "number"
+              },
+              "dateRange": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "from": {
+                        "type": "string"
+                      },
+                      "to": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "from",
+                      "to"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "documentCount",
+              "dateRange"
+            ],
+            "additionalProperties": false
+          },
+          "matchWindowDays": {
+            "type": "number"
+          },
+          "transfers": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "fromAccount": {
+                  "type": "string"
+                },
+                "toAccount": {
+                  "type": "string"
+                },
+                "amount": {
+                  "type": "number"
+                },
+                "currency": {
+                  "type": "string"
+                },
+                "fromDate": {
+                  "type": "string"
+                },
+                "toDate": {
+                  "type": "string"
+                },
+                "dateDeltaDays": {
+                  "type": "number"
+                },
+                "provenance": {
+                  "type": "string",
+                  "enum": [
+                    "deterministic",
+                    "judge"
+                  ]
+                }
+              },
+              "required": [
+                "fromAccount",
+                "toAccount",
+                "amount",
+                "currency",
+                "fromDate",
+                "toDate",
+                "dateDeltaDays",
+                "provenance"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "ambiguousCount": {
+            "type": "number"
+          },
+          "ambiguous": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "fromAccount": {
+                  "type": "string"
+                },
+                "toAccount": {
+                  "type": "string"
+                },
+                "fromTransactionId": {
+                  "type": "string"
+                },
+                "toTransactionId": {
+                  "type": "string"
+                },
+                "amount": {
+                  "type": "number"
+                },
+                "currency": {
+                  "type": "string"
+                },
+                "fromDate": {
+                  "type": "string"
+                },
+                "toDate": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "fromAccount",
+                "toAccount",
+                "fromTransactionId",
+                "toTransactionId",
+                "amount",
+                "currency",
+                "fromDate",
+                "toDate"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "accountSuccessions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "predecessorAccount": {
+                  "type": "string"
+                },
+                "successorAccounts": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "currency": {
+                  "type": "string"
+                },
+                "predecessorDropAmount": {
+                  "type": "number"
+                },
+                "successorOpeningAmount": {
+                  "type": "number"
+                },
+                "effectiveDate": {
+                  "type": "string"
+                },
+                "provenance": {
+                  "type": "string",
+                  "const": "deterministic"
+                }
+              },
+              "required": [
+                "predecessorAccount",
+                "successorAccounts",
+                "currency",
+                "predecessorDropAmount",
+                "successorOpeningAmount",
+                "effectiveDate",
+                "provenance"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "unmatched": {
+            "type": "object",
+            "properties": {
+              "floorAmount": {
+                "type": "number"
+              },
+              "count": {
+                "type": "number"
+              },
+              "movements": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "account": {
+                      "type": "string"
+                    },
+                    "date": {
+                      "type": "string"
+                    },
+                    "description": {
+                      "type": "string"
+                    },
+                    "amount": {
+                      "type": "number"
+                    },
+                    "currency": {
+                      "type": "string"
+                    },
+                    "direction": {
+                      "type": "string",
+                      "enum": [
+                        "credit",
+                        "debit"
+                      ]
+                    },
+                    "sourceDocument": {
+                      "type": "object",
+                      "properties": {
+                        "contentHash": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "contentHash"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "account",
+                    "date",
+                    "description",
+                    "amount",
+                    "currency",
+                    "direction",
+                    "sourceDocument"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": [
+              "floorAmount",
+              "count",
+              "movements"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "scope",
+          "matchWindowDays",
+          "transfers",
+          "ambiguousCount",
+          "ambiguous",
+          "accountSuccessions"
+        ],
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false
+      },
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
         "openWorldHint": false
+      },
+      "_meta": {
+        "securitySchemes": [
+          {
+            "type": "oauth2"
+          }
+        ],
+        "openai/toolInvocation/invoking": "Matching transfers…",
+        "openai/toolInvocation/invoked": "Transfers matched"
       }
     }
   ]
