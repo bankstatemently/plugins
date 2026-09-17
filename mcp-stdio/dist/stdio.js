@@ -58,7 +58,8 @@ function isStdioToolDefinitionsFile(value) {
         && typeof value.version === 'string'
         && typeof value.instructions === 'string'
         && isRecord(value.authErrorResult)
-        && Array.isArray(value.tools);
+        && Array.isArray(value.tools)
+        && Array.isArray(value.prompts);
 }
 /**
  * `tool-definitions.json` is a generator-produced artifact of THIS package
@@ -129,6 +130,21 @@ export async function callHostedTool(name, args, authErrorResult, apiBaseUrl = p
     }
     return body;
 }
+/** Mirrors `packages/backend/src/routes/mcp/promptDefs.ts`'s `renderMcpPromptText`
+ *  — cannot import it (self-contained, #6105), so the ~2-line render is
+ *  duplicated here rather than pulled in, same as `isCallToolResult` above. */
+function renderPromptText(def, argValue) {
+    const header = typeof argValue === 'string' && argValue.length > 0 ? `Input: ${argValue}\n\n` : '';
+    return `${header}${def.text}`;
+}
+/** The one-message `GetPromptResult` envelope every prompt in this repo
+ *  returns — mirrors the hosted server's `prompts.ts`'s own
+ *  `buildPromptResult` (same self-containment reason as `renderPromptText`
+ *  above: cannot import it, so it's duplicated, kept small enough to stay
+ *  under the duplicate-block-ratchet's 8-line window). */
+function buildPromptResult(text) {
+    return { messages: [{ role: 'user', content: { type: 'text', text } }] };
+}
 export function buildServer(definitions) {
     const server = new McpServer({ name: 'bankstatemently', version: definitions.version }, { capabilities: { tools: {} }, instructions: definitions.instructions });
     for (const def of definitions.tools) {
@@ -138,6 +154,25 @@ export function buildServer(definitions) {
             inputSchema: fromJsonSchema(def.inputSchema),
             annotations: def.annotations,
         }, async (args) => callHostedTool(def.name, args, definitions.authErrorResult));
+    }
+    for (const def of definitions.prompts) {
+        // Same two-literal-calls split as the hosted server's `prompts.ts`: an
+        // argless prompt must omit `argsSchema` entirely, not receive an empty
+        // schema (see that file's `registerPrompts` comment).
+        if (def.argKey && def.argsJsonSchema) {
+            const argKey = def.argKey;
+            server.registerPrompt(def.name, {
+                title: def.title,
+                description: def.description,
+                argsSchema: fromJsonSchema(def.argsJsonSchema),
+            }, (args) => buildPromptResult(renderPromptText(def, isRecord(args) ? args[argKey] : undefined)));
+        }
+        else {
+            server.registerPrompt(def.name, {
+                title: def.title,
+                description: def.description,
+            }, () => buildPromptResult(renderPromptText(def, undefined)));
+        }
     }
     return server;
 }

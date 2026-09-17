@@ -5012,5 +5012,51 @@
         "openai/toolInvocation/invoked": "Transfers matched"
       }
     }
+  ],
+  "prompts": [
+    {
+      "name": "convert_statement_workflow",
+      "title": "Convert Statement Workflow",
+      "description": "Use when the user attaches a bank statement PDF or asks for CSV/XLSX/QBO/Xero export of a converted statement. Do not use for spending analysis, reconciliation, or benchmark scoring — those have their own skills.",
+      "text": "# Convert\n\n**Input:** a public HTTPS PDF URL, host-provided PDF attachment, or local file path the host cannot pass directly.\n**Output:** the conversion summary, key account details, statement period, balances, transaction count, and optional CSV/XLSX/QBO/Xero download links.\n\nFollow this sequence:\n\n1. If the input is a public HTTPS URL or host-provided PDF attachment, call `convert_statement`.\n2. If the input is a local file path and the host cannot pass the file directly, call `request_upload`, upload the PDF bytes to the returned URL, then call `convert_statement` with the upload id.\n3. If conversion is still processing, poll `get_statement` until the statement is ready or the tool returns a terminal summary.\n4. Present the tool summary, key account details, statement period, balances, and transaction count. Use the response summary as the source of truth when present.\n5. Ask which export the user wants. For CSV, XLSX, QBO, or Xero, call `get_statement` with the requested output format and present the returned link.\n\n**Example prompt:** Convert this bank statement PDF and give me a CSV download: https://bankstatemently.com/benchmark/statements/bsb-004-statement.pdf\n",
+      "argKey": "source",
+      "argsJsonSchema": {
+        "type": "object",
+        "properties": {
+          "source": {
+            "type": "string",
+            "description": "A public HTTPS PDF URL or attachment hint to convert. Omit to let the assistant ask the user for the statement."
+          }
+        }
+      }
+    },
+    {
+      "name": "analyze_spending",
+      "title": "Analyze Spending",
+      "description": "Use when the user asks to categorize spending, group by merchant or category, rank top merchants, or show monthly trends on converted statements. Do not use for first-time PDF conversion, period reconciliation, or benchmark scoring.",
+      "text": "# Analyze\n\n**Input:** the user's analysis scope — account, product, content hash, date range, or free-text filter.\n**Output:** category totals, merchant or counterparty totals, top merchants, and a monthly trend, each row citing content_hash.\n\nTreat the input as the user's analysis scope: account, product, content hash, date range, or free-text filter.\n\nFollow this sequence:\n\n1. If the scoped statement has not been categorized, call `categorize_statement`.\n2. Call `group_by` for category totals within the scope.\n3. Call `group_by` for merchant or counterparty totals within the scope.\n4. Call `top_n` to rank the largest merchants or counterparties within the scope.\n5. Call `time_series` with monthly buckets for trend figures within the scope.\n6. Present category totals, merchant or counterparty totals, top merchants, and the monthly trend. Cite content_hash for every figure or table row you report.\n\n**Example prompt:** Categorize my checking account spending last quarter and show top merchants plus the monthly trend.\n"
+    },
+    {
+      "name": "reconcile_statements",
+      "title": "Reconcile Statements",
+      "description": "Use when the user asks to check statement coverage, missing periods, balance continuity, or cross-account transfers. Do not use for converting a new PDF, spending categorization, or benchmark scoring.",
+      "text": "# Reconcile\n\n**Input:** the account, product, date range, or free-text scope to reconcile.\n**Output:** a concise reconciliation report with covered periods, missing periods, balance-continuity breaks (with source content_hash pairs), and transfer findings.\n\nTreat the input as the account, product, date range, or free-text scope to reconcile.\n\nFollow this sequence:\n\n1. Call `list_statements` to find statements in scope.\n2. For each completed statement in scope, call `get_statement`.\n3. Sort statements by account and period. Report missing periods, overlapping periods, and gaps.\n4. Compare each closing balance with the next opening balance for the same account. Report every balance-continuity break with the two source content_hash values.\n5. Call `list_transfers` for the same scope to identify cross-account matches and large unmatched movements when relevant.\n6. Present a concise reconciliation report with the account scope, covered periods, missing periods, balance-continuity breaks, and transfer findings.\n\n**Example prompt:** Reconcile my savings account for 2024 — flag missing months and any balance breaks.\n"
+    },
+    {
+      "name": "benchmark_accuracy",
+      "title": "Benchmark Accuracy",
+      "description": "Use when the user asks to convert and score a published Bankstatemently benchmark statement. Do not use for ordinary user-statement conversion, spending analysis, or reconciliation.",
+      "text": "# Benchmark\n\n**Input:** a benchmark statement id, PDF URL, or free-text benchmark request.\n**Output:** extraction accuracy, integrity score, overall score, and major failure categories, citing the benchmark statement id and converted document content_hash.\n\nTreat the input as a benchmark statement id, PDF URL, or free-text benchmark request.\n\nFollow this sequence:\n\n1. Read the benchmark catalog resource and choose the named published statement.\n2. Convert the benchmark PDF with `convert_statement`.\n3. Fetch the converted data with `get_statement` using original data mode.\n4. Pass the benchmark statement id and original parsed transactions to `evaluate_benchmark`.\n5. Present extraction accuracy, integrity score, overall score, and any major failure categories. Cite the benchmark statement id and converted document content_hash.\n\n**Example prompt:** Convert and score the published bsb-004 benchmark statement.\n",
+      "argKey": "statement_id",
+      "argsJsonSchema": {
+        "type": "object",
+        "properties": {
+          "statement_id": {
+            "type": "string",
+            "description": "Benchmark statement ID (e.g. \"bsb-001\"). Omit to let the assistant choose from the published catalog."
+          }
+        }
+      }
+    }
   ]
 }
