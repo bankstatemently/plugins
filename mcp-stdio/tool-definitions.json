@@ -1,5 +1,5 @@
 {
-  "version": "0.14.0",
+  "version": "1.4.0",
   "instructions": "Bankstatemently converts bank statement PDFs into structured, queryable financial data. Workflow: convert_statement (or get_statement for an already-converted document) to parse a PDF, list_statements to browse past conversions, list_transactions/aggregate/group_by/etc. to query across them, and evaluate_benchmark to score extraction accuracy. \"Credits\" on this server means your processing quota (1 credit = 1 page) — NOT a transaction credit/debit. For \"how many credits do I have\" / remaining pages / plan limits, always call get_credits — never filter transactions for it.",
   "authErrorResult": {
     "content": [
