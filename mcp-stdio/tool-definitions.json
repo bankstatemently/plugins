@@ -2238,6 +2238,9 @@
               }
             ]
           },
+          "granted": {
+            "type": "number"
+          },
           "planId": {
             "anyOf": [
               {
@@ -2276,12 +2279,23 @@
                     "type": "null"
                   }
                 ]
+              },
+              "monthlyPages": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
               }
             },
             "required": [
               "maxPagesPerUpload",
               "maxUploadSizeMb",
-              "dailySpendCap"
+              "dailySpendCap",
+              "monthlyPages"
             ],
             "additionalProperties": false
           },
@@ -2292,6 +2306,7 @@
         "required": [
           "balance",
           "limit",
+          "granted",
           "planId",
           "creditsExpireAt",
           "plan",
