@@ -9,7 +9,7 @@ Use this when a user is installing or activating the Bankstatemently plugin.
 
 ## Interactive setup
 
-1. Ask the user to leave the API key field blank during plugin install.
+1. Ask the user to enable the plugin; it asks for no settings.
 2. On the first tool call, the MCP server will challenge the client and open the browser sign-in flow.
 3. After sign-in completes, call `get_credits` to confirm the connection and report the returned credit summary.
 
@@ -17,7 +17,7 @@ Use this when a user is installing or activating the Bankstatemently plugin.
 
 For CI, scripts, or any host without a browser, ask the user to create a live API key in the Bankstatemently developer portal at https://bankstatemently.com/developer. The key starts with bsk_live_.
 
-Use the key only through the plugin's sensitive API key field or the MCP server's X-API-Key header.
+The plugin's bundled server carries no key. For a headless host, add the MCP server directly with the key in its `X-API-Key` header (command in the repository README) instead of installing the plugin.
 
 The server reads your API key from the `X-API-Key` header (`bsk_live_...`). Passing it via `Authorization: Bearer` will be rejected.
 

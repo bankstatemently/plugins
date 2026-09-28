@@ -8,7 +8,7 @@ The server is live at `https://api.bankstatemently.com/mcp` (streamable HTTP). T
 
 For an interactive install with no key to copy/paste — the server advertises OAuth discovery metadata (`/.well-known/oauth-protected-resource/mcp`, `/.well-known/oauth-authorization-server`) and Clerk acts as the authorization server.
 
-Leave `api_key` blank when installing the plugin (below) — the same `bankstatemently` server entry then sends an empty `X-API-Key` header, which the server treats exactly like no header at all. Or install the server directly with no key:
+The plugin's bundled server entry carries no key: install the plugin (below) and sign in when the first tool call opens your browser. Or install the server directly with no key:
 
 ```bash
 claude mcp add --transport http bankstatemently https://api.bankstatemently.com/mcp
@@ -29,7 +29,7 @@ Create a key at the [Bankstatemently Developer Portal](https://bankstatemently.c
 /plugin install bankstatemently@bankstatemently
 ```
 
-After installing, enable the plugin. When prompted for `api_key`, leave it blank to sign in with your browser (OAuth) on first use — or paste a `bsk_live_...` key if you're setting up a headless install.
+After installing, enable the plugin. The first tool call opens your browser to sign in (OAuth); nothing to configure.
 
 > **Dev install (local checkout):** `cd` to the repo root and run `/plugin marketplace add .`, then `/plugin install bankstatemently`.
 
@@ -67,7 +67,7 @@ Add the MCP server directly with the Claude Code CLI and sign in with your brows
 claude mcp add --transport http bankstatemently https://api.bankstatemently.com/mcp
 ```
 
-For a headless install, use the plugin and paste your `bsk_live_` key into its `api_key` option (above). The raw-header form for other MCP clients is documented in the [repository README](https://github.com/bankstatemently/plugins#readme) and on the [developers page](https://bankstatemently.com/developers/mcp).
+For a headless install (CI, scripts), add the server directly with an API key in the `X-API-Key` header instead of the plugin — the command is in the [repository README](https://github.com/bankstatemently/plugins#readme) and on the [developers page](https://bankstatemently.com/developers/mcp).
 
 > Auth note: the server reads an API key from the `X-API-Key` header only. Sending it via `Authorization: Bearer` will be rejected. This is unchanged by OAuth — API-key and OAuth are separate, coexisting auth paths (see the OAuth section above for the browser-sign-in alternative).
 

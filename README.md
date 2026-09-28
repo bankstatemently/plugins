@@ -11,9 +11,9 @@ Marketplace plugins for [Bankstatemently](https://bankstatemently.com) — conve
 /plugin install bankstatemently@bankstatemently
 ```
 
-After installing, enable the plugin and paste your `bsk_live_...` key when prompted for `api_key`.
+After installing, enable the plugin. The first tool call opens your browser to sign in; the plugin asks for no settings.
 
-Get an API key at [bankstatemently.com/developer](https://bankstatemently.com/developer).
+For a headless setup (CI, scripts), skip the plugin and add the server directly with an API key — see below. Get a key at [bankstatemently.com/developer](https://bankstatemently.com/developer).
 
 ## Plugins
 
