@@ -19,3 +19,46 @@ Get an API key at [bankstatemently.com/developer](https://bankstatemently.com/de
 
 - **[bankstatemently](./bankstatemently/)** — MCP server for converting bank statements.
   Convert PDFs, list statements, check credits, run benchmark evaluations.
+
+## Codex
+
+Codex has native OAuth support. This one command detects our server's discovery metadata and opens your browser to sign in — no key is ever stored:
+
+```bash
+codex mcp add bankstatemently --url https://api.bankstatemently.com/mcp
+```
+
+For headless or CI setups where a browser sign-in isn't possible, use an API key via the [mcp-remote](https://github.com/geelen/mcp-remote) bridge instead. Export the key in the shell that launches Codex, before it starts:
+
+```bash
+export BANKSTATEMENTLY_API_KEY=bsk_live_...
+
+codex mcp add bankstatemently -- npx -y mcp-remote@latest https://api.bankstatemently.com/mcp --header "X-API-Key: ${BANKSTATEMENTLY_API_KEY}"
+```
+
+Codex doesn't yet surface plugin-declared MCP servers into sessions, so the plugin install above (and its bundled skill) isn't available in Codex today — use the commands above instead.
+
+**Credential managers & sandboxed clients:** never fetch a secret from Keychain, 1Password, or another credential manager inside the MCP server command itself — Codex runs that command sandboxed at tool discovery, so a credential-manager lookup dies silently and the server's tools never appear. Export the key in the shell that launches Codex instead. Also note that `mcp-remote` logs its resolved header values to stderr, so a wrapper-resolved key can end up in your client logs.
+
+## Run over stdio
+
+For stdio-only clients (Claude Desktop's config file, Cursor, headless
+setups) or a directory scanner that launches the server locally, clone the
+public repo and run the self-contained `mcp-stdio` server directly — no
+Docker, no bridge process:
+
+```bash
+git clone https://github.com/bankstatemently/plugins.git
+cd plugins/mcp-stdio
+npm install --omit=dev
+BANKSTATEMENTLY_API_KEY=bsk_live_... node dist/stdio.js
+```
+
+`BANKSTATEMENTLY_API_KEY` is optional at startup: `initialize`/`tools/list`
+answer with no network call and no key either way, so an uncredentialed
+directory probe still sees the full tool list. A `tools/call` with no key
+returns the same auth-required result the hosted server returns. Export the
+key in the shell or runtime environment that launches the process — never
+resolve it inside the MCP command (a credential-manager lookup inside a
+sandboxed client's command dies silently, same caveat as the Codex section
+above).
