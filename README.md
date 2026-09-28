@@ -20,6 +20,21 @@ Get an API key at [bankstatemently.com/developer](https://bankstatemently.com/de
 - **[bankstatemently](./bankstatemently/)** — MCP server for converting bank statements.
   Convert PDFs, list statements, check credits, run benchmark evaluations.
 
+## Claude Code direct install (no plugin)
+
+Add the hosted MCP server directly and sign in with your browser:
+
+```bash
+claude mcp add --transport http bankstatemently https://api.bankstatemently.com/mcp
+```
+
+For a headless setup, pass an API key in the `X-API-Key` header instead (the server rejects `Authorization: Bearer`):
+
+```bash
+claude mcp add --transport http bankstatemently https://api.bankstatemently.com/mcp \
+  --header "X-API-Key: <your-bsk_live_key>"
+```
+
 ## Codex
 
 Codex has native OAuth support. This one command detects our server's discovery metadata and opens your browser to sign in — no key is ever stored:

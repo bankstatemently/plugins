@@ -61,14 +61,15 @@ The plugin bundles user-invoked commands for common jobs. Each command file is g
 
 ## Direct install (no plugin, no marketplace)
 
-Add the MCP server directly with the Claude Code CLI:
+Add the MCP server directly with the Claude Code CLI and sign in with your browser:
 
 ```bash
-claude mcp add --transport http bankstatemently https://api.bankstatemently.com/mcp \
-  --header "X-API-Key: <your-bsk_live_key>"
+claude mcp add --transport http bankstatemently https://api.bankstatemently.com/mcp
 ```
 
-> Auth note: the server reads the key from `X-API-Key` only. Sending it via `Authorization: Bearer` will be rejected. This is unchanged by OAuth — API-key and OAuth are separate, coexisting auth paths (see the OAuth section above for the browser-sign-in alternative).
+For a headless install, use the plugin and paste your `bsk_live_` key into its `api_key` option (above). The raw-header form for other MCP clients is documented in the [repository README](https://github.com/bankstatemently/plugins#readme) and on the [developers page](https://bankstatemently.com/developers/mcp).
+
+> Auth note: the server reads an API key from the `X-API-Key` header only. Sending it via `Authorization: Bearer` will be rejected. This is unchanged by OAuth — API-key and OAuth are separate, coexisting auth paths (see the OAuth section above for the browser-sign-in alternative).
 
 ## Tools
 
