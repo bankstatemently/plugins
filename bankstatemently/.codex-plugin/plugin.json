@@ -1,6 +1,6 @@
 {
   "name": "bankstatemently",
-  "version": "0.15.3",
+  "version": "0.15.4",
   "description": "Convert your bank statements into structured, queryable financial data — transactions, accounts, and balances from any PDF statement, then analyze them across every statement you've uploaded.",
   "author": {
     "name": "Bankstatemently",
@@ -10,11 +10,18 @@
   "repository": "https://github.com/bankstatemently/plugins",
   "license": "MIT",
   "keywords": [
-    "bank-statements",
-    "mcp",
-    "finance",
+    "bank",
+    "statements",
+    "convert",
     "pdf",
-    "transactions"
+    "csv",
+    "excel",
+    "transactions",
+    "bookkeeping",
+    "accounting",
+    "reconciliation",
+    "qbo",
+    "xero"
   ],
   "skills": "./skills/",
   "mcpServers": "./.codex-plugin/mcp.json",

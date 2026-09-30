@@ -1,5 +1,5 @@
 {
-  "version": "1.4.0",
+  "version": "1.5.0",
   "instructions": "Bankstatemently converts bank statement PDFs into structured, queryable financial data. Workflow: convert_statement (or get_statement for an already-converted document) to parse a PDF, list_statements to browse past conversions, list_transactions/aggregate/group_by/etc. to query across them, and evaluate_benchmark to score extraction accuracy. \"Credits\" on this server means your processing quota (1 credit = 1 page) — NOT a transaction credit/debit. For \"how many credits do I have\" / remaining pages / plan limits, always call get_credits — never filter transactions for it.",
   "authErrorResult": {
     "content": [
@@ -2244,7 +2244,15 @@
           "planId": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "enum": [
+                  "anonymous",
+                  "free",
+                  "credit_pack",
+                  "beginner",
+                  "pro",
+                  "enterprise"
+                ]
               },
               {
                 "type": "null"
@@ -3638,7 +3646,7 @@
     },
     {
       "name": "top_n",
-      "title": "Top N Transactions",
+      "title": "Top Transaction Groups",
       "description": "Return the top N groups ranked by metric (descending), per-currency for monetary metrics. Scope defaults to all your completed statements; pass \"scope\" to narrow to specific accounts/products and/or a date range.",
       "inputSchema": {
         "type": "object",
