@@ -1,6 +1,6 @@
 {
   "name": "bankstatemently",
-  "version": "0.15.4",
+  "version": "0.16.0",
   "description": "Convert your bank statements into structured, queryable financial data — transactions, accounts, and balances from any PDF statement, then analyze them across every statement you've uploaded.",
   "author": {
     "name": "Bankstatemently",
@@ -24,26 +24,138 @@
     "xero"
   ],
   "skills": "./skills/",
-  "mcpServers": "./.codex-plugin/mcp.json",
+  "mcpServers": "./.mcp.json",
   "interface": {
     "displayName": "Bankstatemently",
-    "shortDescription": "Convert PDF bank statements into structured data.",
-    "longDescription": "Convert your bank statements into structured, queryable financial data — transactions, accounts, and balances from any PDF statement, then analyze them across every statement you've uploaded.\n\nSign in with your browser on first use.\n\nTools: convert_statement, request_upload, get_statement, categorize_statement, list_statements, dismiss_statement, get_credits, rate_statement, list_transactions, aggregate, group_by, top_n, compare, time_series, list_transfers, evaluate_benchmark.",
+    "shortDescription": "Convert bank statements",
+    "longDescription": "Bankstatemently converts PDF bank statements into structured transaction data.\n\nAttach a bank statement PDF to get its accounts, balances, and transactions in the chat, or as a CSV, Excel, QBO, or Xero file. You can then list your converted statements, categorize transactions, and total or group spending by category, merchant, or month.\n\nRequires a Bankstatemently account. Bankstatemently reads the PDF you provide and never connects to your bank.",
     "developerName": "Bankstatemently",
-    "category": "Productivity",
+    "category": "Finance",
     "capabilities": [
-      "MCP",
-      "Finance",
-      "PDF parsing"
+      "Convert PDF bank statements",
+      "Export to CSV, Excel, QBO, or Xero",
+      "List converted statements",
+      "Categorize transactions",
+      "Group spending by category, merchant, or month"
     ],
-    "websiteURL": "https://bankstatemently.com/developers/mcp",
+    "websiteURL": "https://bankstatemently.com/",
     "privacyPolicyURL": "https://bankstatemently.com/privacy",
     "termsOfServiceURL": "https://bankstatemently.com/terms",
+    "supportURL": "https://bankstatemently.com/support",
     "defaultPrompt": [
-      "Check my Bankstatemently credits.",
-      "Convert this bank statement PDF.",
-      "List my recently converted statements."
+      "Convert this bank statement PDF into a spreadsheet",
+      "Show my top merchants across my converted statements",
+      "Export my statement to QuickBooks format"
     ],
-    "brandColor": "#2563EB"
+    "logo": "./assets/logo-badge.png",
+    "composerIcon": "./assets/logo-badge.png",
+    "brandColor": "#AD569E",
+    "brandColorDark": "#AD569E"
+  },
+  "extensions": {
+    "com.openai": {
+      "review": {
+        "test_cases": {
+          "positive": [
+            {
+              "description": "Check the user's available conversion credits before converting a statement.",
+              "prompt": "Check my Bankstatemently credit balance before I upload a bank statement.",
+              "tools_triggered": "get_credits",
+              "expected_behavior": "Returns the user's current credit balance and plan information."
+            },
+            {
+              "description": "Convert a PDF bank statement (public synthetic benchmark statement) into structured data.",
+              "prompt": "Use the convert_statement tool to convert the bank statement at https://bankstatemently.com/benchmark/statements/bsb-005-statement.pdf into structured data, then summarize the extracted account, balance, and transaction data.",
+              "tools_triggered": "convert_statement",
+              "expected_behavior": "Returns converted statement status, document metadata, transaction count, confidence information, and structured results or a polling instruction."
+            },
+            {
+              "description": "Retrieve the structured results for the statement that was just converted.",
+              "prompt": "Fetch the converted results for the bank statement I just uploaded as JSON.",
+              "tools_triggered": "get_statement",
+              "expected_behavior": "Returns the completed converted statement data, a still-converting status, or a clear document-status error."
+            },
+            {
+              "description": "Categorize transactions for the statement that was just converted.",
+              "prompt": "Categorize the transactions in the bank statement I just converted.",
+              "tools_triggered": "categorize_statement",
+              "expected_behavior": "Returns the document's category mappings, cached with no charge if already categorized."
+            },
+            {
+              "description": "Analyze already-converted statements without re-uploading (the account's pre-loaded statements are queryable immediately).",
+              "prompt": "Using Bankstatemently, where did I spend the most? Show my top merchants across my converted statements.",
+              "tools_triggered": "top_n",
+              "expected_behavior": "Returns the top merchant groups ranked by total spend (per currency) from the user's already-converted statements."
+            }
+          ],
+          "negative": [
+            {
+              "description": "Do not call a tool for a finance question that does not involve the user's own statements, even when the user names the app.",
+              "prompt": "Using the bankstatemently app:\n\nWhat is the current exchange rate from US dollars to euros?",
+              "expected_behavior": "No Bankstatemently tool should be called. ChatGPT states that Bankstatemently does not provide exchange rates and answers from another source."
+            },
+            {
+              "description": "Do not trigger for requests to access online banking accounts.",
+              "prompt": "using bankstatemently plugin: Log in to my bank and download my latest statement.",
+              "expected_behavior": "No Bankstatemently tool should be called. ChatGPT states that Bankstatemently cannot log in to banks or retrieve files from banking portals, and offers to convert a statement PDF the user provides."
+            },
+            {
+              "description": "Do not trigger for payment or money movement requests.",
+              "prompt": "Using Bankstatemently plugin: Pay my credit card bill from my checking account.",
+              "expected_behavior": "No Bankstatemently tool should be called. ChatGPT states that Bankstatemently cannot move money or initiate payments."
+            }
+          ]
+        },
+        "demo_recording_url": "https://youtu.be/ZecWF02Pc7w",
+        "commerce": false,
+        "commerce_description": "Bankstatemently is a digital bank statement parsing service. The ChatGPT plugin does not sell products, subscriptions, or credits, process payments, promote upgrades, or initiate purchase flows.\n\nUsers may connect an existing Bankstatemently account and use the features and credits already available to that account. The plugin can parse bank statements, check existing credit entitlements, retrieve parsed results, list prior statements, and evaluate benchmark output."
+      },
+      "publication": {
+        "countries": [],
+        "release_notes": "Fixed: transaction categorization now completes for statements of any size.\n\nChanged: the credit balance tool also reports the credits granted, and reports the plan as one of a fixed set of values. The top_n tool is now titled \"Top Transaction Groups\", matching what it returns.",
+        "translations": {
+          "pt-BR": {
+            "subtitle": "Converta extratos bancários",
+            "description": "O Bankstatemently converte extratos bancários em PDF em dados de transações estruturados.\n\nAnexe um extrato bancário em PDF para obter contas, saldos e transações no chat, ou como arquivo CSV, Excel, QBO ou Xero. Depois, você pode listar seus extratos convertidos, categorizar transações e totalizar ou agrupar gastos por categoria, estabelecimento ou mês.\n\nÉ necessária uma conta Bankstatemently. O Bankstatemently lê o PDF que você envia e nunca se conecta ao seu banco."
+          },
+          "pt-PT": {
+            "subtitle": "Converta extratos bancários",
+            "description": "O Bankstatemently converte extratos bancários em PDF em dados de transações estruturados.\n\nAnexe um extrato bancário em PDF para obter contas, saldos e transações no chat, ou como ficheiro CSV, Excel, QBO ou Xero. Depois, pode listar os seus extratos convertidos, categorizar transações e totalizar ou agrupar despesas por categoria, comerciante ou mês.\n\nÉ necessária uma conta Bankstatemently. O Bankstatemently lê o PDF que fornece e nunca se liga ao seu banco."
+          },
+          "es-419": {
+            "subtitle": "Convierte extractos bancarios",
+            "description": "Bankstatemently convierte extractos bancarios en PDF en datos de transacciones estructurados.\n\nAdjunta un extracto bancario en PDF para obtener sus cuentas, saldos y transacciones en el chat, o como un archivo CSV, Excel, QBO o Xero. Después puedes listar tus extractos convertidos, categorizar transacciones y totalizar o agrupar gastos por categoría, comercio o mes.\n\nSe requiere una cuenta de Bankstatemently. Bankstatemently lee el PDF que proporcionas y nunca se conecta a tu banco."
+          },
+          "es-ES": {
+            "subtitle": "Convierte extractos bancarios",
+            "description": "Bankstatemently convierte extractos bancarios en PDF en datos de transacciones estructurados.\n\nAdjunta un extracto bancario en PDF para obtener sus cuentas, saldos y transacciones en el chat, o como un archivo CSV, Excel, QBO o Xero. Después puedes listar tus extractos convertidos, categorizar transacciones y totalizar o agrupar gastos por categoría, comercio o mes.\n\nSe requiere una cuenta de Bankstatemently. Bankstatemently lee el PDF que proporcionas y nunca se conecta a tu banco."
+          },
+          "fr-FR": {
+            "subtitle": "Convertir un relevé bancaire",
+            "description": "Bankstatemently convertit les relevés bancaires PDF en données de transactions structurées.\n\nJoignez un relevé bancaire PDF pour obtenir ses comptes, soldes et transactions dans le chat, ou en fichier CSV, Excel, QBO ou Xero. Vous pouvez ensuite lister vos relevés convertis, catégoriser les transactions et totaliser ou regrouper les dépenses par catégorie, commerçant ou mois.\n\nUn compte Bankstatemently est requis. Bankstatemently lit le PDF que vous fournissez et ne se connecte jamais à votre banque."
+          },
+          "fr-CA": {
+            "subtitle": "Convertir un relevé bancaire",
+            "description": "Bankstatemently convertit les relevés bancaires PDF en données de transactions structurées.\n\nJoignez un relevé bancaire PDF pour obtenir ses comptes, soldes et transactions dans le chat, ou en fichier CSV, Excel, QBO ou Xero. Vous pouvez ensuite lister vos relevés convertis, catégoriser les transactions et totaliser ou regrouper les dépenses par catégorie, commerçant ou mois.\n\nUn compte Bankstatemently est requis. Bankstatemently lit le PDF que vous fournissez et ne se connecte jamais à votre banque."
+          },
+          "ja-JP": {
+            "subtitle": "銀行明細書を変換",
+            "description": "Bankstatementlyは、PDFの銀行明細書を構造化された取引データに変換します。\n\n銀行明細書のPDFを添付すると、口座・残高・取引をチャット内で、またはCSV・Excel・QBO・Xeroファイルとして取得できます。その後、変換済みの明細書の一覧表示、取引のカテゴリ分類、カテゴリ・店舗・月ごとの支出の合計やグループ化が可能です。\n\nBankstatementlyアカウントが必要です。Bankstatementlyは提供されたPDFを読み取るだけで、お客様の銀行には接続しません。"
+          },
+          "zh-CN": {
+            "subtitle": "转换银行对账单",
+            "description": "Bankstatemently 将 PDF 银行对账单转换为结构化交易数据。\n\n附上银行对账单 PDF，即可在对话中获取账户、余额和交易，或以 CSV、Excel、QBO 或 Xero 文件导出。之后，您可以列出已转换的对账单、对交易分类，并按类别、商户或月份汇总或分组支出。\n\n需要 Bankstatemently 账户。Bankstatemently 只读取您提供的 PDF，从不连接您的银行。"
+          },
+          "zh-TW": {
+            "subtitle": "轉換銀行對帳單",
+            "description": "Bankstatemently 將 PDF 銀行對帳單轉換為結構化交易資料。\n\n附上銀行對帳單 PDF，即可在對話中取得帳戶、餘額與交易，或以 CSV、Excel、QBO 或 Xero 檔案匯出。之後，您可以列出已轉換的對帳單、將交易分類，並依類別、商家或月份加總或分組支出。\n\n需要 Bankstatemently 帳戶。Bankstatemently 只讀取您提供的 PDF，絕不連接您的銀行。"
+          },
+          "zh-HK": {
+            "subtitle": "轉換銀行對帳單",
+            "description": "Bankstatemently 將 PDF 銀行對帳單轉換為結構化交易資料。\n\n附上銀行對帳單 PDF，即可在對話中取得帳戶、餘額與交易，或以 CSV、Excel、QBO 或 Xero 檔案匯出。之後，您可以列出已轉換的對帳單、將交易分類，並依類別、商家或月份加總或分組支出。\n\n需要 Bankstatemently 帳戶。Bankstatemently 只讀取您提供的 PDF，絕不連接您的銀行。"
+          }
+        }
+      }
+    }
   }
 }

@@ -1,6 +1,6 @@
 {
   "name": "bankstatemently",
-  "version": "0.15.4",
+  "version": "0.16.0",
   "description": "Convert your bank statements into structured, queryable financial data — transactions, accounts, and balances from any PDF statement, then analyze them across every statement you've uploaded.",
   "author": {
     "name": "Bankstatemently",
@@ -9,7 +9,7 @@
   "homepage": "https://bankstatemently.com/developers/mcp",
   "repository": "https://github.com/bankstatemently/plugins",
   "license": "MIT",
-  "icon": "./icon.svg",
+  "icon": "./assets/logo-mark.svg",
   "privacyPolicyUrl": "https://bankstatemently.com/privacy",
   "termsOfServiceUrl": "https://bankstatemently.com/terms",
   "supportUrl": "https://bankstatemently.com/support",
