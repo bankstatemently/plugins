@@ -1,5 +1,5 @@
 {
-  "version": "1.5.0",
+  "version": "2.0.0",
   "instructions": "Bankstatemently converts bank statement PDFs into structured, queryable financial data. Workflow: convert_statement (or get_statement for an already-converted document) to parse a PDF, list_statements to browse past conversions, list_transactions/aggregate/group_by/etc. to query across them, and evaluate_benchmark to score extraction accuracy. \"Credits\" on this server means your processing quota (1 credit = 1 page) — NOT a transaction credit/debit. For \"how many credits do I have\" / remaining pages / plan limits, always call get_credits — never filter transactions for it.",
   "authErrorResult": {
     "content": [
@@ -320,6 +320,16 @@
                       "items": {
                         "type": "object",
                         "properties": {
+                          "id": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
                           "productId": {
                             "anyOf": [
                               {
@@ -383,6 +393,16 @@
                                   "anyOf": [
                                     {
                                       "type": "number"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "id": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string"
                                     },
                                     {
                                       "type": "null"
@@ -1179,6 +1199,16 @@
                       "items": {
                         "type": "object",
                         "properties": {
+                          "id": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
                           "productId": {
                             "anyOf": [
                               {
@@ -1242,6 +1272,16 @@
                                   "anyOf": [
                                     {
                                       "type": "number"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "id": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string"
                                     },
                                     {
                                       "type": "null"
@@ -2214,6 +2254,604 @@
       }
     },
     {
+      "name": "adjudicate_transfers",
+      "title": "Adjudicate Transfers",
+      "description": "Decide whether ambiguous pairs from list_transfers are transfers. Pass \"verdict\" when the user has told you; leave it out to let the AI judge decide. Returns the updated list_transfers answer.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "amountMin": {
+            "description": "Same floor as list_transfers.",
+            "type": "number"
+          },
+          "pairs": {
+            "description": "Pairs as list_transfers returned them. Required with verdict; omit to judge every open pair.",
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "fromTransactionId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "fromTransactionId, as list_transfers returned it."
+                },
+                "toTransactionId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "toTransactionId, as list_transfers returned it."
+                }
+              },
+              "required": [
+                "fromTransactionId",
+                "toTransactionId"
+              ]
+            }
+          },
+          "verdict": {
+            "description": "The user's verdict. Omit to let the judge decide.",
+            "type": "string",
+            "enum": [
+              "confirmed",
+              "rejected"
+            ]
+          },
+          "scope": {
+            "description": "Optional structural scope (WHO × WHEN). Omit to search across all your completed statements. \"accounts\" is a list of account/product chips ({ kind: \"account\" | \"product\", id }, the id of an account descriptor or product returned by a tool); \"dateRange\" bounds by transaction date (YYYY-MM-DD).",
+            "type": "object",
+            "properties": {
+              "accounts": {
+                "type": "array",
+                "items": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "const": "account",
+                          "description": "This chip addresses a single account."
+                        },
+                        "id": {
+                          "type": "string",
+                          "format": "uuid",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                          "description": "The account id: the `id` of an account descriptor returned by a tool, or of a statement tool `accounts[]` entry."
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "id"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "const": "product",
+                          "description": "This chip addresses a product and expands to its child accounts."
+                        },
+                        "id": {
+                          "type": "string",
+                          "format": "uuid",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                          "description": "The product id: the `id` of a product returned by a statement tool (`get_statement` / `convert_statement`, `products[].id`)."
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "id"
+                      ],
+                      "additionalProperties": false
+                    }
+                  ]
+                },
+                "description": "Account/product id chips (kind + id) to scope to. Empty = all accounts."
+              },
+              "dateRange": {
+                "description": "Bounds results to transactions within this date range. Omit for no date filter.",
+                "type": "object",
+                "properties": {
+                  "from": {
+                    "type": "string",
+                    "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+                    "description": "Start of the date range (inclusive), YYYY-MM-DD."
+                  },
+                  "to": {
+                    "type": "string",
+                    "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+                    "description": "End of the date range (inclusive), YYYY-MM-DD."
+                  }
+                },
+                "required": [
+                  "from",
+                  "to"
+                ]
+              }
+            },
+            "required": [
+              "accounts"
+            ]
+          }
+        },
+        "$schema": "https://json-schema.org/draft/2020-12/schema"
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "scope": {
+            "type": "object",
+            "properties": {
+              "documentCount": {
+                "type": "number"
+              },
+              "dateRange": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "from": {
+                        "type": "string"
+                      },
+                      "to": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "from",
+                      "to"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "documentCount",
+              "dateRange"
+            ],
+            "additionalProperties": false
+          },
+          "matchWindowDays": {
+            "type": "number"
+          },
+          "transfers": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "fromAccount": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "label": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "label"
+                  ],
+                  "additionalProperties": false
+                },
+                "toAccount": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "label": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "label"
+                  ],
+                  "additionalProperties": false
+                },
+                "fromTransactionId": {
+                  "type": "string"
+                },
+                "toTransactionId": {
+                  "type": "string"
+                },
+                "amount": {
+                  "type": "number"
+                },
+                "currency": {
+                  "type": "string"
+                },
+                "fromDate": {
+                  "type": "string"
+                },
+                "toDate": {
+                  "type": "string"
+                },
+                "dateDeltaDays": {
+                  "type": "number"
+                },
+                "provenance": {
+                  "type": "string",
+                  "enum": [
+                    "deterministic",
+                    "judge",
+                    "user"
+                  ]
+                }
+              },
+              "required": [
+                "fromAccount",
+                "toAccount",
+                "fromTransactionId",
+                "toTransactionId",
+                "amount",
+                "currency",
+                "fromDate",
+                "toDate",
+                "dateDeltaDays",
+                "provenance"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "ambiguousCount": {
+            "type": "number"
+          },
+          "ambiguous": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "fromAccount": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "label": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "label"
+                  ],
+                  "additionalProperties": false
+                },
+                "toAccount": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "label": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "label"
+                  ],
+                  "additionalProperties": false
+                },
+                "fromTransactionId": {
+                  "type": "string"
+                },
+                "toTransactionId": {
+                  "type": "string"
+                },
+                "amount": {
+                  "type": "number"
+                },
+                "currency": {
+                  "type": "string"
+                },
+                "fromDate": {
+                  "type": "string"
+                },
+                "toDate": {
+                  "type": "string"
+                },
+                "dateDeltaDays": {
+                  "type": "number"
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "unresolved",
+                    "abstained"
+                  ]
+                },
+                "judgeModelId": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "fromAccount",
+                "toAccount",
+                "fromTransactionId",
+                "toTransactionId",
+                "amount",
+                "currency",
+                "fromDate",
+                "toDate",
+                "dateDeltaDays",
+                "status",
+                "judgeModelId"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "accountSuccessions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "predecessorAccount": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "label": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "label"
+                  ],
+                  "additionalProperties": false
+                },
+                "successorAccounts": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "label": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "label"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "currency": {
+                  "type": "string"
+                },
+                "predecessorDropAmount": {
+                  "type": "number"
+                },
+                "successorOpeningAmount": {
+                  "type": "number"
+                },
+                "effectiveDate": {
+                  "type": "string"
+                },
+                "provenance": {
+                  "type": "string",
+                  "const": "deterministic"
+                }
+              },
+              "required": [
+                "predecessorAccount",
+                "successorAccounts",
+                "currency",
+                "predecessorDropAmount",
+                "successorOpeningAmount",
+                "effectiveDate",
+                "provenance"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "unmatched": {
+            "type": "object",
+            "properties": {
+              "floorAmount": {
+                "type": "number"
+              },
+              "count": {
+                "type": "number"
+              },
+              "movements": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "account": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "label": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "label"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "date": {
+                      "type": "string"
+                    },
+                    "description": {
+                      "type": "string"
+                    },
+                    "amount": {
+                      "type": "number"
+                    },
+                    "currency": {
+                      "type": "string"
+                    },
+                    "direction": {
+                      "type": "string",
+                      "enum": [
+                        "credit",
+                        "debit"
+                      ]
+                    },
+                    "sourceDocument": {
+                      "type": "object",
+                      "properties": {
+                        "contentHash": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "contentHash"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "account",
+                    "date",
+                    "description",
+                    "amount",
+                    "currency",
+                    "direction",
+                    "sourceDocument"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": [
+              "floorAmount",
+              "count",
+              "movements"
+            ],
+            "additionalProperties": false
+          },
+          "adjudication": {
+            "type": "object",
+            "properties": {
+              "recorded": {
+                "type": "number"
+              },
+              "judged": {
+                "type": "number"
+              },
+              "remainingUnjudged": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "recorded",
+              "judged",
+              "remainingUnjudged"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "scope",
+          "matchWindowDays",
+          "transfers",
+          "ambiguousCount",
+          "ambiguous",
+          "accountSuccessions",
+          "adjudication"
+        ],
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "openWorldHint": false
+      },
+      "_meta": {
+        "securitySchemes": [
+          {
+            "type": "oauth2"
+          }
+        ],
+        "openai/toolInvocation/invoking": "Adjudicating transfers…",
+        "openai/toolInvocation/invoked": "Transfers adjudicated"
+      }
+    },
+    {
       "name": "get_credits",
       "title": "Get Credit Balance",
       "description": "Your remaining Bankstatemently credits — the processing quota, NOT credit/debit transactions. Use for: how many credits do I have, remaining pages, plan limits, quota, how many pages can I upload. 1 credit = 1 page of bank statement processing. Also reports your plan's operational limits (max pages per upload, max upload size, daily spend cap) so you can size a multi-file batch correctly before starting it.",
@@ -2703,13 +3341,6 @@
                 "type": "string",
                 "description": "ISO date (YYYY-MM-DD). Inclusive upper bound."
               },
-              "accounts": {
-                "type": "array",
-                "items": {
-                  "type": "string"
-                },
-                "description": "Account number slugs to include."
-              },
               "currency": {
                 "type": "string",
                 "description": "ISO 4217 currency code. E.g. \"USD\", \"HKD\"."
@@ -2762,6 +3393,7 @@
                 "description": "Inclusive maximum absolute amount."
               }
             },
+            "additionalProperties": false,
             "description": "Subset of transactions to operate on. All fields are optional and combined with AND logic."
           },
           "limit": {
@@ -2785,7 +3417,7 @@
             "description": "Sort direction. Default \"desc\" (largest amount / most recent date first). Only meaningful with sort_by."
           },
           "scope": {
-            "description": "Optional structural scope (WHO × WHEN). Omit to search across all your completed statements. \"accounts\" is a list of account/product chips (kind + identityKey); \"dateRange\" bounds by transaction date (YYYY-MM-DD).",
+            "description": "Optional structural scope (WHO × WHEN). Omit to search across all your completed statements. \"accounts\" is a list of account/product chips ({ kind: \"account\" | \"product\", id }, the id of an account descriptor or product returned by a tool); \"dateRange\" bounds by transaction date (YYYY-MM-DD).",
             "type": "object",
             "properties": {
               "accounts": {
@@ -2800,24 +3432,18 @@
                           "const": "account",
                           "description": "This chip addresses a single account."
                         },
-                        "identityKey": {
+                        "id": {
                           "type": "string",
-                          "minLength": 1,
-                          "description": "Canonical account identity key (accountIdentityKey), never a raw DB UUID."
-                        },
-                        "anchorContentHash": {
-                          "description": "Document-anchored lookup when present (results page); omit for a user-scoped lookup (workspace surfaces).",
-                          "type": "string"
-                        },
-                        "label": {
-                          "description": "Display label for this chip.",
-                          "type": "string"
+                          "format": "uuid",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                          "description": "The account id: the `id` of an account descriptor returned by a tool, or of a statement tool `accounts[]` entry."
                         }
                       },
                       "required": [
                         "kind",
-                        "identityKey"
-                      ]
+                        "id"
+                      ],
+                      "additionalProperties": false
                     },
                     {
                       "type": "object",
@@ -2827,24 +3453,22 @@
                           "const": "product",
                           "description": "This chip addresses a product and expands to its child accounts."
                         },
-                        "identityKey": {
+                        "id": {
                           "type": "string",
-                          "minLength": 1,
-                          "description": "Product slug."
-                        },
-                        "label": {
-                          "description": "Display label for this chip.",
-                          "type": "string"
+                          "format": "uuid",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                          "description": "The product id: the `id` of a product returned by a statement tool (`get_statement` / `convert_statement`, `products[].id`)."
                         }
                       },
                       "required": [
                         "kind",
-                        "identityKey"
-                      ]
+                        "id"
+                      ],
+                      "additionalProperties": false
                     }
                   ]
                 },
-                "description": "Account/product chips (kind + identityKey) to scope to. Empty = all accounts."
+                "description": "Account/product id chips (kind + id) to scope to. Empty = all accounts."
               },
               "dateRange": {
                 "description": "Bounds results to transactions within this date range. Omit for no date filter.",
@@ -2962,14 +3586,27 @@
                   ]
                 },
                 "account": {
-                  "anyOf": [
-                    {
-                      "type": "string"
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
                     },
-                    {
-                      "type": "null"
+                    "label": {
+                      "type": "string"
                     }
-                  ]
+                  },
+                  "required": [
+                    "id",
+                    "label"
+                  ],
+                  "additionalProperties": false
                 },
                 "sourceDocument": {
                   "type": "object",
@@ -3044,13 +3681,6 @@
                 "type": "string",
                 "description": "ISO date (YYYY-MM-DD). Inclusive upper bound."
               },
-              "accounts": {
-                "type": "array",
-                "items": {
-                  "type": "string"
-                },
-                "description": "Account number slugs to include."
-              },
               "currency": {
                 "type": "string",
                 "description": "ISO 4217 currency code. E.g. \"USD\", \"HKD\"."
@@ -3103,6 +3733,7 @@
                 "description": "Inclusive maximum absolute amount."
               }
             },
+            "additionalProperties": false,
             "description": "Subset of transactions to operate on. All fields are optional and combined with AND logic."
           },
           "metric": {
@@ -3117,7 +3748,7 @@
             "description": "Aggregation metric."
           },
           "scope": {
-            "description": "Optional structural scope (WHO × WHEN). Omit to search across all your completed statements. \"accounts\" is a list of account/product chips (kind + identityKey); \"dateRange\" bounds by transaction date (YYYY-MM-DD).",
+            "description": "Optional structural scope (WHO × WHEN). Omit to search across all your completed statements. \"accounts\" is a list of account/product chips ({ kind: \"account\" | \"product\", id }, the id of an account descriptor or product returned by a tool); \"dateRange\" bounds by transaction date (YYYY-MM-DD).",
             "type": "object",
             "properties": {
               "accounts": {
@@ -3132,24 +3763,18 @@
                           "const": "account",
                           "description": "This chip addresses a single account."
                         },
-                        "identityKey": {
+                        "id": {
                           "type": "string",
-                          "minLength": 1,
-                          "description": "Canonical account identity key (accountIdentityKey), never a raw DB UUID."
-                        },
-                        "anchorContentHash": {
-                          "description": "Document-anchored lookup when present (results page); omit for a user-scoped lookup (workspace surfaces).",
-                          "type": "string"
-                        },
-                        "label": {
-                          "description": "Display label for this chip.",
-                          "type": "string"
+                          "format": "uuid",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                          "description": "The account id: the `id` of an account descriptor returned by a tool, or of a statement tool `accounts[]` entry."
                         }
                       },
                       "required": [
                         "kind",
-                        "identityKey"
-                      ]
+                        "id"
+                      ],
+                      "additionalProperties": false
                     },
                     {
                       "type": "object",
@@ -3159,24 +3784,22 @@
                           "const": "product",
                           "description": "This chip addresses a product and expands to its child accounts."
                         },
-                        "identityKey": {
+                        "id": {
                           "type": "string",
-                          "minLength": 1,
-                          "description": "Product slug."
-                        },
-                        "label": {
-                          "description": "Display label for this chip.",
-                          "type": "string"
+                          "format": "uuid",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                          "description": "The product id: the `id` of a product returned by a statement tool (`get_statement` / `convert_statement`, `products[].id`)."
                         }
                       },
                       "required": [
                         "kind",
-                        "identityKey"
-                      ]
+                        "id"
+                      ],
+                      "additionalProperties": false
                     }
                   ]
                 },
-                "description": "Account/product chips (kind + identityKey) to scope to. Empty = all accounts."
+                "description": "Account/product id chips (kind + id) to scope to. Empty = all accounts."
               },
               "dateRange": {
                 "description": "Bounds results to transactions within this date range. Omit for no date filter.",
@@ -3347,13 +3970,6 @@
                 "type": "string",
                 "description": "ISO date (YYYY-MM-DD). Inclusive upper bound."
               },
-              "accounts": {
-                "type": "array",
-                "items": {
-                  "type": "string"
-                },
-                "description": "Account number slugs to include."
-              },
               "currency": {
                 "type": "string",
                 "description": "ISO 4217 currency code. E.g. \"USD\", \"HKD\"."
@@ -3406,6 +4022,7 @@
                 "description": "Inclusive maximum absolute amount."
               }
             },
+            "additionalProperties": false,
             "description": "Subset of transactions to operate on. All fields are optional and combined with AND logic."
           },
           "dimension": {
@@ -3431,7 +4048,7 @@
             "description": "Metric per group."
           },
           "scope": {
-            "description": "Optional structural scope (WHO × WHEN). Omit to search across all your completed statements. \"accounts\" is a list of account/product chips (kind + identityKey); \"dateRange\" bounds by transaction date (YYYY-MM-DD).",
+            "description": "Optional structural scope (WHO × WHEN). Omit to search across all your completed statements. \"accounts\" is a list of account/product chips ({ kind: \"account\" | \"product\", id }, the id of an account descriptor or product returned by a tool); \"dateRange\" bounds by transaction date (YYYY-MM-DD).",
             "type": "object",
             "properties": {
               "accounts": {
@@ -3446,24 +4063,18 @@
                           "const": "account",
                           "description": "This chip addresses a single account."
                         },
-                        "identityKey": {
+                        "id": {
                           "type": "string",
-                          "minLength": 1,
-                          "description": "Canonical account identity key (accountIdentityKey), never a raw DB UUID."
-                        },
-                        "anchorContentHash": {
-                          "description": "Document-anchored lookup when present (results page); omit for a user-scoped lookup (workspace surfaces).",
-                          "type": "string"
-                        },
-                        "label": {
-                          "description": "Display label for this chip.",
-                          "type": "string"
+                          "format": "uuid",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                          "description": "The account id: the `id` of an account descriptor returned by a tool, or of a statement tool `accounts[]` entry."
                         }
                       },
                       "required": [
                         "kind",
-                        "identityKey"
-                      ]
+                        "id"
+                      ],
+                      "additionalProperties": false
                     },
                     {
                       "type": "object",
@@ -3473,24 +4084,22 @@
                           "const": "product",
                           "description": "This chip addresses a product and expands to its child accounts."
                         },
-                        "identityKey": {
+                        "id": {
                           "type": "string",
-                          "minLength": 1,
-                          "description": "Product slug."
-                        },
-                        "label": {
-                          "description": "Display label for this chip.",
-                          "type": "string"
+                          "format": "uuid",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                          "description": "The product id: the `id` of a product returned by a statement tool (`get_statement` / `convert_statement`, `products[].id`)."
                         }
                       },
                       "required": [
                         "kind",
-                        "identityKey"
-                      ]
+                        "id"
+                      ],
+                      "additionalProperties": false
                     }
                   ]
                 },
-                "description": "Account/product chips (kind + identityKey) to scope to. Empty = all accounts."
+                "description": "Account/product id chips (kind + id) to scope to. Empty = all accounts."
               },
               "dateRange": {
                 "description": "Bounds results to transactions within this date range. Omit for no date filter.",
@@ -3662,13 +4271,6 @@
                 "type": "string",
                 "description": "ISO date (YYYY-MM-DD). Inclusive upper bound."
               },
-              "accounts": {
-                "type": "array",
-                "items": {
-                  "type": "string"
-                },
-                "description": "Account number slugs to include."
-              },
               "currency": {
                 "type": "string",
                 "description": "ISO 4217 currency code. E.g. \"USD\", \"HKD\"."
@@ -3721,6 +4323,7 @@
                 "description": "Inclusive maximum absolute amount."
               }
             },
+            "additionalProperties": false,
             "description": "Subset of transactions to operate on. All fields are optional and combined with AND logic."
           },
           "dimension": {
@@ -3750,7 +4353,7 @@
             "description": "Number of top groups to return."
           },
           "scope": {
-            "description": "Optional structural scope (WHO × WHEN). Omit to search across all your completed statements. \"accounts\" is a list of account/product chips (kind + identityKey); \"dateRange\" bounds by transaction date (YYYY-MM-DD).",
+            "description": "Optional structural scope (WHO × WHEN). Omit to search across all your completed statements. \"accounts\" is a list of account/product chips ({ kind: \"account\" | \"product\", id }, the id of an account descriptor or product returned by a tool); \"dateRange\" bounds by transaction date (YYYY-MM-DD).",
             "type": "object",
             "properties": {
               "accounts": {
@@ -3765,24 +4368,18 @@
                           "const": "account",
                           "description": "This chip addresses a single account."
                         },
-                        "identityKey": {
+                        "id": {
                           "type": "string",
-                          "minLength": 1,
-                          "description": "Canonical account identity key (accountIdentityKey), never a raw DB UUID."
-                        },
-                        "anchorContentHash": {
-                          "description": "Document-anchored lookup when present (results page); omit for a user-scoped lookup (workspace surfaces).",
-                          "type": "string"
-                        },
-                        "label": {
-                          "description": "Display label for this chip.",
-                          "type": "string"
+                          "format": "uuid",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                          "description": "The account id: the `id` of an account descriptor returned by a tool, or of a statement tool `accounts[]` entry."
                         }
                       },
                       "required": [
                         "kind",
-                        "identityKey"
-                      ]
+                        "id"
+                      ],
+                      "additionalProperties": false
                     },
                     {
                       "type": "object",
@@ -3792,24 +4389,22 @@
                           "const": "product",
                           "description": "This chip addresses a product and expands to its child accounts."
                         },
-                        "identityKey": {
+                        "id": {
                           "type": "string",
-                          "minLength": 1,
-                          "description": "Product slug."
-                        },
-                        "label": {
-                          "description": "Display label for this chip.",
-                          "type": "string"
+                          "format": "uuid",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                          "description": "The product id: the `id` of a product returned by a statement tool (`get_statement` / `convert_statement`, `products[].id`)."
                         }
                       },
                       "required": [
                         "kind",
-                        "identityKey"
-                      ]
+                        "id"
+                      ],
+                      "additionalProperties": false
                     }
                   ]
                 },
-                "description": "Account/product chips (kind + identityKey) to scope to. Empty = all accounts."
+                "description": "Account/product id chips (kind + id) to scope to. Empty = all accounts."
               },
               "dateRange": {
                 "description": "Bounds results to transactions within this date range. Omit for no date filter.",
@@ -3982,13 +4577,6 @@
                 "type": "string",
                 "description": "ISO date (YYYY-MM-DD). Inclusive upper bound."
               },
-              "accounts": {
-                "type": "array",
-                "items": {
-                  "type": "string"
-                },
-                "description": "Account number slugs to include."
-              },
               "currency": {
                 "type": "string",
                 "description": "ISO 4217 currency code. E.g. \"USD\", \"HKD\"."
@@ -4041,6 +4629,7 @@
                 "description": "Inclusive maximum absolute amount."
               }
             },
+            "additionalProperties": false,
             "description": "Subset of transactions to operate on. All fields are optional and combined with AND logic."
           },
           "filterB": {
@@ -4054,13 +4643,6 @@
                 "type": "string",
                 "description": "ISO date (YYYY-MM-DD). Inclusive upper bound."
               },
-              "accounts": {
-                "type": "array",
-                "items": {
-                  "type": "string"
-                },
-                "description": "Account number slugs to include."
-              },
               "currency": {
                 "type": "string",
                 "description": "ISO 4217 currency code. E.g. \"USD\", \"HKD\"."
@@ -4113,6 +4695,7 @@
                 "description": "Inclusive maximum absolute amount."
               }
             },
+            "additionalProperties": false,
             "description": "Subset of transactions to operate on. All fields are optional and combined with AND logic."
           },
           "metric": {
@@ -4127,7 +4710,7 @@
             "description": "Metric for both groups."
           },
           "scope": {
-            "description": "Optional structural scope (WHO × WHEN). Omit to search across all your completed statements. \"accounts\" is a list of account/product chips (kind + identityKey); \"dateRange\" bounds by transaction date (YYYY-MM-DD).",
+            "description": "Optional structural scope (WHO × WHEN). Omit to search across all your completed statements. \"accounts\" is a list of account/product chips ({ kind: \"account\" | \"product\", id }, the id of an account descriptor or product returned by a tool); \"dateRange\" bounds by transaction date (YYYY-MM-DD).",
             "type": "object",
             "properties": {
               "accounts": {
@@ -4142,24 +4725,18 @@
                           "const": "account",
                           "description": "This chip addresses a single account."
                         },
-                        "identityKey": {
+                        "id": {
                           "type": "string",
-                          "minLength": 1,
-                          "description": "Canonical account identity key (accountIdentityKey), never a raw DB UUID."
-                        },
-                        "anchorContentHash": {
-                          "description": "Document-anchored lookup when present (results page); omit for a user-scoped lookup (workspace surfaces).",
-                          "type": "string"
-                        },
-                        "label": {
-                          "description": "Display label for this chip.",
-                          "type": "string"
+                          "format": "uuid",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                          "description": "The account id: the `id` of an account descriptor returned by a tool, or of a statement tool `accounts[]` entry."
                         }
                       },
                       "required": [
                         "kind",
-                        "identityKey"
-                      ]
+                        "id"
+                      ],
+                      "additionalProperties": false
                     },
                     {
                       "type": "object",
@@ -4169,24 +4746,22 @@
                           "const": "product",
                           "description": "This chip addresses a product and expands to its child accounts."
                         },
-                        "identityKey": {
+                        "id": {
                           "type": "string",
-                          "minLength": 1,
-                          "description": "Product slug."
-                        },
-                        "label": {
-                          "description": "Display label for this chip.",
-                          "type": "string"
+                          "format": "uuid",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                          "description": "The product id: the `id` of a product returned by a statement tool (`get_statement` / `convert_statement`, `products[].id`)."
                         }
                       },
                       "required": [
                         "kind",
-                        "identityKey"
-                      ]
+                        "id"
+                      ],
+                      "additionalProperties": false
                     }
                   ]
                 },
-                "description": "Account/product chips (kind + identityKey) to scope to. Empty = all accounts."
+                "description": "Account/product id chips (kind + id) to scope to. Empty = all accounts."
               },
               "dateRange": {
                 "description": "Bounds results to transactions within this date range. Omit for no date filter.",
@@ -4359,13 +4934,6 @@
                 "type": "string",
                 "description": "ISO date (YYYY-MM-DD). Inclusive upper bound."
               },
-              "accounts": {
-                "type": "array",
-                "items": {
-                  "type": "string"
-                },
-                "description": "Account number slugs to include."
-              },
               "currency": {
                 "type": "string",
                 "description": "ISO 4217 currency code. E.g. \"USD\", \"HKD\"."
@@ -4418,6 +4986,7 @@
                 "description": "Inclusive maximum absolute amount."
               }
             },
+            "additionalProperties": false,
             "description": "Subset of transactions to operate on. All fields are optional and combined with AND logic."
           },
           "bucket": {
@@ -4440,7 +5009,7 @@
             "description": "Metric per bucket."
           },
           "scope": {
-            "description": "Optional structural scope (WHO × WHEN). Omit to search across all your completed statements. \"accounts\" is a list of account/product chips (kind + identityKey); \"dateRange\" bounds by transaction date (YYYY-MM-DD).",
+            "description": "Optional structural scope (WHO × WHEN). Omit to search across all your completed statements. \"accounts\" is a list of account/product chips ({ kind: \"account\" | \"product\", id }, the id of an account descriptor or product returned by a tool); \"dateRange\" bounds by transaction date (YYYY-MM-DD).",
             "type": "object",
             "properties": {
               "accounts": {
@@ -4455,24 +5024,18 @@
                           "const": "account",
                           "description": "This chip addresses a single account."
                         },
-                        "identityKey": {
+                        "id": {
                           "type": "string",
-                          "minLength": 1,
-                          "description": "Canonical account identity key (accountIdentityKey), never a raw DB UUID."
-                        },
-                        "anchorContentHash": {
-                          "description": "Document-anchored lookup when present (results page); omit for a user-scoped lookup (workspace surfaces).",
-                          "type": "string"
-                        },
-                        "label": {
-                          "description": "Display label for this chip.",
-                          "type": "string"
+                          "format": "uuid",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                          "description": "The account id: the `id` of an account descriptor returned by a tool, or of a statement tool `accounts[]` entry."
                         }
                       },
                       "required": [
                         "kind",
-                        "identityKey"
-                      ]
+                        "id"
+                      ],
+                      "additionalProperties": false
                     },
                     {
                       "type": "object",
@@ -4482,24 +5045,22 @@
                           "const": "product",
                           "description": "This chip addresses a product and expands to its child accounts."
                         },
-                        "identityKey": {
+                        "id": {
                           "type": "string",
-                          "minLength": 1,
-                          "description": "Product slug."
-                        },
-                        "label": {
-                          "description": "Display label for this chip.",
-                          "type": "string"
+                          "format": "uuid",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                          "description": "The product id: the `id` of a product returned by a statement tool (`get_statement` / `convert_statement`, `products[].id`)."
                         }
                       },
                       "required": [
                         "kind",
-                        "identityKey"
-                      ]
+                        "id"
+                      ],
+                      "additionalProperties": false
                     }
                   ]
                 },
-                "description": "Account/product chips (kind + identityKey) to scope to. Empty = all accounts."
+                "description": "Account/product id chips (kind + id) to scope to. Empty = all accounts."
               },
               "dateRange": {
                 "description": "Bounds results to transactions within this date range. Omit for no date filter.",
@@ -4656,7 +5217,7 @@
     {
       "name": "list_transfers",
       "title": "Match Transfers Between Accounts",
-      "description": "Match transfers between your own accounts. A transfer is TWO transactions — a debit leaving one of your accounts and a credit arriving in another — matched as two sides of the same movement (amount and date aligned); account-level successions (an account closing into a successor) are matched too. A payment to an outside party is not a transfer here: only movements with both sides visible in your statements are matched. THE way to answer any \"was money moved between my accounts\" / \"did I transfer X\" question — never try to answer a money-moved-between-accounts question with list_transactions + arithmetic; always call this tool instead. Scope defaults to all your completed statements; pass \"scope\" to narrow to specific accounts/products and/or a date range. Every response reports the match window (in days) it used, even when no transfers are found — a lack of matches is never silent about how hard it looked. To find large movements with NO matching counterpart in your other accounts — e.g. \"trace transfers over $10,000; which ones leave without a known destination?\" — pass \"amountMin\": reconciled pairs and successions are filtered to that floor, and the response gains an \"unmatched\" bucket of large movements (debits leaving, or unexplained credits arriving) with no matching pair, candidate, or succession. Omit amountMin for the ordinary reconciled-pairs answer.",
+      "description": "Match transfers between your own accounts. A transfer is TWO transactions — a debit leaving one of your accounts and a credit arriving in another — matched as two sides of the same movement (amount and date aligned); account-level successions (an account closing into a successor) are matched too. A payment to an outside party is not a transfer here: only movements with both sides visible in your statements are matched. THE way to answer any \"was money moved between my accounts\" / \"did I transfer X\" question — never try to answer a money-moved-between-accounts question with list_transactions + arithmetic; always call this tool instead. Ties come back as \"ambiguous\" until decided; call adjudicate_transfers to decide them. Scope defaults to all your completed statements; pass \"scope\" to narrow to specific accounts/products and/or a date range. Every response reports the match window (in days) it used, even when no transfers are found — a lack of matches is never silent about how hard it looked. To find large movements with NO matching counterpart in your other accounts — e.g. \"trace transfers over $10,000; which ones leave without a known destination?\" — pass \"amountMin\": reconciled pairs and successions are filtered to that floor, and the response gains an \"unmatched\" bucket of large movements (debits leaving, or unexplained credits arriving) with no matching pair, candidate, or succession. Omit amountMin for the ordinary reconciled-pairs answer.",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -4665,7 +5226,7 @@
             "description": "Inclusive minimum absolute amount. When present, transfers/accountSuccessions are floored to this amount and the response gains an \"unmatched\" bucket of large movements with no matching counterpart. Omit for the ordinary reconciled-pairs answer."
           },
           "scope": {
-            "description": "Optional structural scope (WHO × WHEN). Omit to search across all your completed statements. \"accounts\" is a list of account/product chips (kind + identityKey); \"dateRange\" bounds by transaction date (YYYY-MM-DD).",
+            "description": "Optional structural scope (WHO × WHEN). Omit to search across all your completed statements. \"accounts\" is a list of account/product chips ({ kind: \"account\" | \"product\", id }, the id of an account descriptor or product returned by a tool); \"dateRange\" bounds by transaction date (YYYY-MM-DD).",
             "type": "object",
             "properties": {
               "accounts": {
@@ -4680,24 +5241,18 @@
                           "const": "account",
                           "description": "This chip addresses a single account."
                         },
-                        "identityKey": {
+                        "id": {
                           "type": "string",
-                          "minLength": 1,
-                          "description": "Canonical account identity key (accountIdentityKey), never a raw DB UUID."
-                        },
-                        "anchorContentHash": {
-                          "description": "Document-anchored lookup when present (results page); omit for a user-scoped lookup (workspace surfaces).",
-                          "type": "string"
-                        },
-                        "label": {
-                          "description": "Display label for this chip.",
-                          "type": "string"
+                          "format": "uuid",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                          "description": "The account id: the `id` of an account descriptor returned by a tool, or of a statement tool `accounts[]` entry."
                         }
                       },
                       "required": [
                         "kind",
-                        "identityKey"
-                      ]
+                        "id"
+                      ],
+                      "additionalProperties": false
                     },
                     {
                       "type": "object",
@@ -4707,24 +5262,22 @@
                           "const": "product",
                           "description": "This chip addresses a product and expands to its child accounts."
                         },
-                        "identityKey": {
+                        "id": {
                           "type": "string",
-                          "minLength": 1,
-                          "description": "Product slug."
-                        },
-                        "label": {
-                          "description": "Display label for this chip.",
-                          "type": "string"
+                          "format": "uuid",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                          "description": "The product id: the `id` of a product returned by a statement tool (`get_statement` / `convert_statement`, `products[].id`)."
                         }
                       },
                       "required": [
                         "kind",
-                        "identityKey"
-                      ]
+                        "id"
+                      ],
+                      "additionalProperties": false
                     }
                   ]
                 },
-                "description": "Account/product chips (kind + identityKey) to scope to. Empty = all accounts."
+                "description": "Account/product id chips (kind + id) to scope to. Empty = all accounts."
               },
               "dateRange": {
                 "description": "Bounds results to transactions within this date range. Omit for no date filter.",
@@ -4802,9 +5355,55 @@
               "type": "object",
               "properties": {
                 "fromAccount": {
-                  "type": "string"
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "label": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "label"
+                  ],
+                  "additionalProperties": false
                 },
                 "toAccount": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "label": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "label"
+                  ],
+                  "additionalProperties": false
+                },
+                "fromTransactionId": {
+                  "type": "string"
+                },
+                "toTransactionId": {
                   "type": "string"
                 },
                 "amount": {
@@ -4826,13 +5425,16 @@
                   "type": "string",
                   "enum": [
                     "deterministic",
-                    "judge"
+                    "judge",
+                    "user"
                   ]
                 }
               },
               "required": [
                 "fromAccount",
                 "toAccount",
+                "fromTransactionId",
+                "toTransactionId",
                 "amount",
                 "currency",
                 "fromDate",
@@ -4852,10 +5454,50 @@
               "type": "object",
               "properties": {
                 "fromAccount": {
-                  "type": "string"
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "label": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "label"
+                  ],
+                  "additionalProperties": false
                 },
                 "toAccount": {
-                  "type": "string"
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "label": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "label"
+                  ],
+                  "additionalProperties": false
                 },
                 "fromTransactionId": {
                   "type": "string"
@@ -4874,6 +5516,26 @@
                 },
                 "toDate": {
                   "type": "string"
+                },
+                "dateDeltaDays": {
+                  "type": "number"
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "unresolved",
+                    "abstained"
+                  ]
+                },
+                "judgeModelId": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
                 }
               },
               "required": [
@@ -4884,7 +5546,10 @@
                 "amount",
                 "currency",
                 "fromDate",
-                "toDate"
+                "toDate",
+                "dateDeltaDays",
+                "status",
+                "judgeModelId"
               ],
               "additionalProperties": false
             }
@@ -4895,12 +5560,52 @@
               "type": "object",
               "properties": {
                 "predecessorAccount": {
-                  "type": "string"
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "label": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "label"
+                  ],
+                  "additionalProperties": false
                 },
                 "successorAccounts": {
                   "type": "array",
                   "items": {
-                    "type": "string"
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "label": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "label"
+                    ],
+                    "additionalProperties": false
                   }
                 },
                 "currency": {
@@ -4947,7 +5652,27 @@
                   "type": "object",
                   "properties": {
                     "account": {
-                      "type": "string"
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "label": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "label"
+                      ],
+                      "additionalProperties": false
                     },
                     "date": {
                       "type": "string"

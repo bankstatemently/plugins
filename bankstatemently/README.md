@@ -91,6 +91,7 @@ For a headless install (CI, scripts), add the server directly with an API key in
 | `compare` | Side-by-side metric comparison for two filtered groups of transactions (e.g. one category vs another, one month vs another). | Free |
 | `time_series` | Compute a time series by grouping transactions into week or month buckets and applying a metric — useful for trends. | Free |
 | `list_transfers` | Match transfers between your own accounts. | Free |
+| `adjudicate_transfers` | Decide whether ambiguous pairs from list_transfers are transfers. | Free |
 | `evaluate_benchmark` | Score parsed bank statement transactions against the Bankstatemently benchmark ground truth. | Free |
 <!-- TOOLS_TABLE_END -->
 

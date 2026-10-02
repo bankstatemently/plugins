@@ -2,7 +2,7 @@
   "name": "bankstatemently",
   "description": "Official Bankstatemently plugins — convert bank statements directly from Claude.",
   "owner": {
-    "name": "Bankstatemently",
+    "name": "Uncommon Goods Lab Pte. Ltd.",
     "url": "https://bankstatemently.com"
   },
   "plugins": [

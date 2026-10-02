@@ -1,9 +1,9 @@
 {
   "name": "bankstatemently",
-  "version": "0.16.0",
+  "version": "0.17.0",
   "description": "Convert your bank statements into structured, queryable financial data — transactions, accounts, and balances from any PDF statement, then analyze them across every statement you've uploaded.",
   "author": {
-    "name": "Bankstatemently",
+    "name": "Uncommon Goods Lab Pte. Ltd.",
     "url": "https://bankstatemently.com"
   },
   "homepage": "https://bankstatemently.com/developers/mcp",
@@ -29,7 +29,7 @@
     "displayName": "Bankstatemently",
     "shortDescription": "Convert bank statements",
     "longDescription": "Bankstatemently converts PDF bank statements into structured transaction data.\n\nAttach a bank statement PDF to get its accounts, balances, and transactions in the chat, or as a CSV, Excel, QBO, or Xero file. You can then list your converted statements, categorize transactions, and total or group spending by category, merchant, or month.\n\nRequires a Bankstatemently account. Bankstatemently reads the PDF you provide and never connects to your bank.",
-    "developerName": "Bankstatemently",
+    "developerName": "Uncommon Goods Lab Pte. Ltd.",
     "category": "Finance",
     "capabilities": [
       "Convert PDF bank statements",
