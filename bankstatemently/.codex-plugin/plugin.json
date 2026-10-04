@@ -1,6 +1,6 @@
 {
   "name": "bankstatemently",
-  "version": "0.18.0",
+  "version": "0.18.1",
   "description": "Convert your bank statements into structured, queryable financial data — transactions, accounts, and balances from any PDF statement, then analyze them across every statement you've uploaded.",
   "author": {
     "name": "Uncommon Goods Lab Pte. Ltd.",

@@ -37,25 +37,14 @@ After installing, enable the plugin. The first tool call opens your browser to s
 
 ## Skills
 
-The plugin bundles four OpenAI-format skills (also used as the source for Claude commands):
+Each skill runs when your request fits it, or directly as its slash command.
 
 | Skill | Use it for |
 |---|---|
-| `convert-statement` | Convert a statement from a file path, attachment, or public PDF URL, then fetch CSV, XLSX, QBO, or Xero exports. |
-| `analyze-spending` | Categorize a statement when needed, then group spending by category and merchant, rank top merchants, and build monthly trends. |
-| `reconcile-statements` | Review statement coverage, missing periods, balance-continuity breaks, and cross-account transfers. |
-| `benchmark-accuracy` | Convert a published Bankstatemently benchmark statement and score it against the benchmark catalog. |
-
-## Commands
-
-The plugin bundles user-invoked commands for common jobs. Each command file is generated from its matching skill — do not edit `commands/*.md` by hand.
-
-| Command | Skill source | Use it for |
-|---|---|---|
-| `/bankstatemently:convert` | `convert-statement` | Convert a statement from a file path, attachment, or public PDF URL, then fetch CSV, XLSX, QBO, or Xero exports. |
-| `/bankstatemently:analyze` | `analyze-spending` | Categorize a statement when needed, then group spending by category and merchant, rank top merchants, and build monthly trends. |
-| `/bankstatemently:reconcile` | `reconcile-statements` | Review statement coverage, missing periods, balance-continuity breaks, and cross-account transfers. |
-| `/bankstatemently:benchmark` | `benchmark-accuracy` | Convert a published Bankstatemently benchmark statement and score it against the benchmark catalog. |
+| `/bankstatemently:convert-statement` | Convert a statement from a file path, attachment, or public PDF URL, then fetch CSV, XLSX, QBO, or Xero exports. |
+| `/bankstatemently:analyze-spending` | Categorize a statement when needed, then group spending by category and merchant, rank top merchants, and build monthly trends. |
+| `/bankstatemently:reconcile-statements` | Review statement coverage, missing periods, balance-continuity breaks, and cross-account transfers. |
+| `/bankstatemently:benchmark-accuracy` | Convert a published Bankstatemently benchmark statement and score it against the benchmark catalog. |
 
 ---
 
@@ -83,7 +72,7 @@ For a headless install (CI, scripts), add the server directly with an API key in
 | `list_statements` | Browse your previously converted bank statements with pagination and optional status filter. | Free |
 | `dismiss_statement` | Hide a failed, rejected, or cancelled document from future list_statements results. | Free |
 | `get_credits` | Your remaining Bankstatemently credits — the processing quota, NOT credit/debit transactions. | Free |
-| `rate_statement` | Report how well a previously converted bank statement was parsed: submit a 1-5 rating, optionally with structured feedback (only accepted when the rating is 3 or below) and use-case tags. | Free |
+| `rate_statement` | Report how well a previously converted bank statement was parsed: submit a 1-5 rating, optionally with structured feedback (only accepted when the rating is 3 or below). | Free |
 | `list_transactions` | A transaction is a single line as printed on one account's statement — one side of any movement. | Free |
 | `aggregate` | Compute a single metric (sum/average/count/max/min) over a filtered set of transactions across your converted statements. | Free |
 | `group_by` | Group transactions by a dimension (month/category/merchant/account/currency) and apply a metric to each group. | Free |

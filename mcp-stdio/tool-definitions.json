@@ -2979,7 +2979,7 @@
     {
       "name": "rate_statement",
       "title": "Rate Statement Conversion",
-      "description": "Report how well a previously converted bank statement was parsed: submit a 1-5 rating, optionally with structured feedback (only accepted when the rating is 3 or below) and use-case tags. Calling this again for the same document updates your existing rating without clearing feedback already submitted for it. Returns the stored rating state in the response — there is no separate tool to read your own rating back. Every response includes a \"summary\" field: use it as the single source of truth for what happened.",
+      "description": "Report how well a previously converted bank statement was parsed: submit a 1-5 rating, optionally with structured feedback (only accepted when the rating is 3 or below). Calling this again for the same document updates your existing rating without clearing feedback already submitted for it. Returns the stored rating state in the response — there is no separate tool to read your own rating back. Every response includes a \"summary\" field: use it as the single source of truth for what happened.",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -3012,38 +3012,6 @@
             "description": "Free-text feedback. Only accepted when rating is 3 or below.",
             "type": "string",
             "maxLength": 1000
-          },
-          "use_case": {
-            "description": "Tags describing what you use the converted data for.",
-            "type": "array",
-            "items": {
-              "type": "string",
-              "enum": [
-                "bookkeeping",
-                "tax_preparation",
-                "financial_analysis",
-                "audit_compliance",
-                "reconciliation",
-                "personal_finance",
-                "data_migration",
-                "other"
-              ]
-            }
-          },
-          "use_case_other": {
-            "description": "Free-text use case, for when \"other\" is among the use_case tags.",
-            "type": "string",
-            "maxLength": 500
-          },
-          "export_format": {
-            "description": "Which output format you exported this conversion to (csv, xlsx, qbo, or xero).",
-            "type": "string",
-            "enum": [
-              "csv",
-              "xlsx",
-              "qbo",
-              "xero"
-            ]
           }
         },
         "required": [
@@ -3067,22 +3035,6 @@
           "hasFeedback": {
             "type": "boolean"
           },
-          "useCase": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "useCaseOther": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
           "message": {
             "type": "string"
           },
@@ -3104,7 +3056,7 @@
       },
       "annotations": {
         "readOnlyHint": false,
-        "destructiveHint": false,
+        "destructiveHint": true,
         "openWorldHint": false
       },
       "_meta": {
