@@ -2979,7 +2979,7 @@
     {
       "name": "rate_statement",
       "title": "Rate Statement Conversion",
-      "description": "Report how well a previously converted bank statement was parsed: submit a 1-5 rating, optionally with structured feedback (only accepted when the rating is 3 or below). Calling this again for the same document updates your existing rating without clearing feedback already submitted for it. Returns the stored rating state in the response — there is no separate tool to read your own rating back. Every response includes a \"summary\" field: use it as the single source of truth for what happened.",
+      "description": "Report how well a previously converted bank statement was parsed: submit a 1-5 rating, optionally with structured feedback when the rating is 3 or below. Your rating counts toward the average ratings shown on bankstatemently.com. Calling this again for the same document updates your existing rating without clearing feedback already submitted for it. Returns the stored rating state in the response — there is no separate tool to read your own rating back. Every response includes a \"summary\" field: use it as the single source of truth for what happened.",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -2994,7 +2994,7 @@
             "description": "1-5 star rating for this conversion"
           },
           "feedback_categories": {
-            "description": "Structured feedback categories. Only accepted when rating is 3 or below.",
+            "description": "Structured feedback categories. Only when the rating is 3 or below.",
             "type": "array",
             "items": {
               "type": "string",
@@ -3009,7 +3009,7 @@
             }
           },
           "feedback": {
-            "description": "Free-text feedback. Only accepted when rating is 3 or below.",
+            "description": "Free-text feedback. Only when the rating is 3 or below.",
             "type": "string",
             "maxLength": 1000
           }
@@ -3057,7 +3057,7 @@
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": true,
-        "openWorldHint": false
+        "openWorldHint": true
       },
       "_meta": {
         "securitySchemes": [

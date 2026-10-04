@@ -72,7 +72,7 @@ For a headless install (CI, scripts), add the server directly with an API key in
 | `list_statements` | Browse your previously converted bank statements with pagination and optional status filter. | Free |
 | `dismiss_statement` | Hide a failed, rejected, or cancelled document from future list_statements results. | Free |
 | `get_credits` | Your remaining Bankstatemently credits — the processing quota, NOT credit/debit transactions. | Free |
-| `rate_statement` | Report how well a previously converted bank statement was parsed: submit a 1-5 rating, optionally with structured feedback (only accepted when the rating is 3 or below). | Free |
+| `rate_statement` | Report how well a previously converted bank statement was parsed: submit a 1-5 rating, optionally with structured feedback when the rating is 3 or below. | Free |
 | `list_transactions` | A transaction is a single line as printed on one account's statement — one side of any movement. | Free |
 | `aggregate` | Compute a single metric (sum/average/count/max/min) over a filtered set of transactions across your converted statements. | Free |
 | `group_by` | Group transactions by a dimension (month/category/merchant/account/currency) and apply a metric to each group. | Free |
