@@ -1,5 +1,5 @@
 {
-  "version": "2.0.0",
+  "version": "2.1.0",
   "instructions": "Bankstatemently converts bank statement PDFs into structured, queryable financial data. Workflow: convert_statement (or get_statement for an already-converted document) to parse a PDF, list_statements to browse past conversions, list_transactions/aggregate/group_by/etc. to query across them, and evaluate_benchmark to score extraction accuracy. \"Credits\" on this server means your processing quota (1 credit = 1 page) — NOT a transaction credit/debit. For \"how many credits do I have\" / remaining pages / plan limits, always call get_credits — never filter transactions for it.",
   "authErrorResult": {
     "content": [
@@ -3907,7 +3907,7 @@
     {
       "name": "group_by",
       "title": "Group Transactions",
-      "description": "Group transactions by a dimension (month/category/merchant/account/currency) and apply a metric to each group. Results are per-currency. Scope defaults to all your completed statements; pass \"scope\" to narrow to specific accounts/products and/or a date range.",
+      "description": "Group transactions by a dimension (month/category/counterparty/account/currency) and apply a metric to each group. Results are per-currency. The \"counterparty\" dimension keys on the printed counterparty, else a printed account mask (••1234), else the description's name tokens, so a rail word or reference number never splits one payee; a line with no key groups under \"unknown\". Scope defaults to all your completed statements; pass \"scope\" to narrow to specific accounts/products and/or a date range.",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -3982,7 +3982,7 @@
             "enum": [
               "month",
               "category",
-              "merchant",
+              "counterparty",
               "account",
               "currency"
             ],
@@ -4283,7 +4283,7 @@
             "enum": [
               "month",
               "category",
-              "merchant",
+              "counterparty",
               "account",
               "currency"
             ],
@@ -5710,6 +5710,395 @@
         ],
         "openai/toolInvocation/invoking": "Matching transfers…",
         "openai/toolInvocation/invoked": "Transfers matched"
+      }
+    },
+    {
+      "name": "list_outflows",
+      "title": "List Money That Left Your Accounts",
+      "description": "Every debit that left your accounts — in no confirmed transfer between your own accounts, and not a fee — each in ONE destination whose kind is also its next step: \"own-account\" (a printed account mask that names one of your accounts and no matched credit was found: ask for that account's statement), \"account\" (a printed account mask for an account outside your statements: request that account's statements; an in-kind move such as securities, crypto or escrow starts as a wire to that account and becomes visible only once the receiving statement is uploaded), \"cash\" (cash out: where it went cannot be followed, so the cumulative amount is the finding), \"name\" (a named party: review whether it was household spending) and \"unknown\" (nowhere the line says; kept visible, one entry per line, never merged). A destination carries the cumulative amount sent, per currency, never a balance. \"mayBeOwnAccount\" lists debits in an open candidate pair (\"may be a move between your own accounts\") apart, in no total. THE way to answer \"did money disappear from my accounts, and where do I look next\" — never answer it by summing list_transactions rows. Pass \"dateRange\" ({ from, to }, inclusive, YYYY-MM-DD) to report only debits in that range, for example from a separation date: transfers are matched over the whole scope first, so a transfer whose credit lies outside the range is still a transfer, never an outflow. Scope defaults to all your completed statements; pass \"scope\" to narrow to specific accounts/products and/or a date range (a scope date range also narrows what is matched — prefer \"dateRange\").",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "dateRange": {
+            "type": "object",
+            "properties": {
+              "from": {
+                "type": "string",
+                "description": "ISO date (YYYY-MM-DD). Inclusive start of the range."
+              },
+              "to": {
+                "type": "string",
+                "description": "ISO date (YYYY-MM-DD). Inclusive end of the range."
+              }
+            },
+            "required": [
+              "from",
+              "to"
+            ],
+            "additionalProperties": false,
+            "description": "Report only debits dated in this inclusive range. Omit to report every date."
+          },
+          "scope": {
+            "description": "Optional structural scope (WHO × WHEN). Omit to search across all your completed statements. \"accounts\" is a list of account/product chips ({ kind: \"account\" | \"product\", id }, the id of an account descriptor or product returned by a tool); \"dateRange\" bounds by transaction date (YYYY-MM-DD).",
+            "type": "object",
+            "properties": {
+              "accounts": {
+                "type": "array",
+                "items": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "const": "account",
+                          "description": "This chip addresses a single account."
+                        },
+                        "id": {
+                          "type": "string",
+                          "format": "uuid",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                          "description": "The account id: the `id` of an account descriptor returned by a tool, or of a statement tool `accounts[]` entry."
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "id"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "const": "product",
+                          "description": "This chip addresses a product and expands to its child accounts."
+                        },
+                        "id": {
+                          "type": "string",
+                          "format": "uuid",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                          "description": "The product id: the `id` of a product returned by a statement tool (`get_statement` / `convert_statement`, `products[].id`)."
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "id"
+                      ],
+                      "additionalProperties": false
+                    }
+                  ]
+                },
+                "description": "Account/product id chips (kind + id) to scope to. Empty = all accounts."
+              },
+              "dateRange": {
+                "description": "Bounds results to transactions within this date range. Omit for no date filter.",
+                "type": "object",
+                "properties": {
+                  "from": {
+                    "type": "string",
+                    "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+                    "description": "Start of the date range (inclusive), YYYY-MM-DD."
+                  },
+                  "to": {
+                    "type": "string",
+                    "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+                    "description": "End of the date range (inclusive), YYYY-MM-DD."
+                  }
+                },
+                "required": [
+                  "from",
+                  "to"
+                ]
+              }
+            },
+            "required": [
+              "accounts"
+            ]
+          }
+        },
+        "$schema": "https://json-schema.org/draft/2020-12/schema"
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "dateRange": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "from": {
+                    "type": "string",
+                    "format": "date",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+                    "description": "ISO date (YYYY-MM-DD). Inclusive start of the range."
+                  },
+                  "to": {
+                    "type": "string",
+                    "format": "date",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+                    "description": "ISO date (YYYY-MM-DD). Inclusive end of the range."
+                  }
+                },
+                "required": [
+                  "from",
+                  "to"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "destinations": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "own-account",
+                    "account",
+                    "cash",
+                    "name",
+                    "unknown"
+                  ]
+                },
+                "label": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "totals": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "currency": {
+                        "type": "string"
+                      },
+                      "amount": {
+                        "type": "number"
+                      }
+                    },
+                    "required": [
+                      "currency",
+                      "amount"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "outflows": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "date": {
+                        "type": "string"
+                      },
+                      "amount": {
+                        "type": "number"
+                      },
+                      "currency": {
+                        "type": "string"
+                      },
+                      "account": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "label": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "label"
+                        ],
+                        "additionalProperties": false
+                      },
+                      "sourceDocument": {
+                        "type": "object",
+                        "properties": {
+                          "contentHash": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        },
+                        "required": [
+                          "contentHash"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "required": [
+                      "date",
+                      "amount",
+                      "currency",
+                      "account",
+                      "sourceDocument"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              },
+              "required": [
+                "kind",
+                "label",
+                "totals",
+                "outflows"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "mayBeOwnAccount": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "date": {
+                  "type": "string"
+                },
+                "amount": {
+                  "type": "number"
+                },
+                "currency": {
+                  "type": "string"
+                },
+                "account": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "label": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "label"
+                  ],
+                  "additionalProperties": false
+                },
+                "sourceDocument": {
+                  "type": "object",
+                  "properties": {
+                    "contentHash": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "contentHash"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "required": [
+                "date",
+                "amount",
+                "currency",
+                "account",
+                "sourceDocument"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "scope": {
+            "type": "object",
+            "properties": {
+              "documentCount": {
+                "type": "number"
+              },
+              "dateRange": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "from": {
+                        "type": "string"
+                      },
+                      "to": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "from",
+                      "to"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "documentCount",
+              "dateRange"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "dateRange",
+          "destinations",
+          "mayBeOwnAccount",
+          "scope"
+        ],
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": false
+      },
+      "_meta": {
+        "securitySchemes": [
+          {
+            "type": "oauth2"
+          }
+        ],
+        "openai/toolInvocation/invoking": "Tracing money that left…",
+        "openai/toolInvocation/invoked": "Outflows traced"
       }
     }
   ],

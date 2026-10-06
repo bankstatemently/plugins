@@ -75,11 +75,12 @@ For a headless install (CI, scripts), add the server directly with an API key in
 | `rate_statement` | Report how well a previously converted bank statement was parsed: submit a 1-5 rating, optionally with structured feedback at any rating. | Free |
 | `list_transactions` | A transaction is a single line as printed on one account's statement — one side of any movement. | Free |
 | `aggregate` | Compute a single metric (sum/average/count/max/min) over a filtered set of transactions across your converted statements. | Free |
-| `group_by` | Group transactions by a dimension (month/category/merchant/account/currency) and apply a metric to each group. | Free |
+| `group_by` | Group transactions by a dimension (month/category/counterparty/account/currency) and apply a metric to each group. | Free |
 | `top_n` | Return the top N groups ranked by metric (descending), per-currency for monetary metrics. | Free |
 | `compare` | Side-by-side metric comparison for two filtered groups of transactions (e.g. one category vs another, one month vs another). | Free |
 | `time_series` | Compute a time series by grouping transactions into week or month buckets and applying a metric — useful for trends. | Free |
 | `list_transfers` | Match transfers between your own accounts. | Free |
+| `list_outflows` | Every debit that left your accounts — in no confirmed transfer between your own accounts, and not a fee — each in ONE destination whose kind is also its next step: "own-account" (a printed account mask that names one of your accounts and no matched credit was found: ask for that account's statement), "account" (a printed account mask for an account outside your statements: request that account's statements; an in-kind move such as securities, crypto or escrow starts as a wire to that account and becomes visible only once the receiving statement is uploaded), "cash" (cash out: where it went cannot be followed, so the cumulative amount is the finding), "name" (a named party: review whether it was household spending) and "unknown" (nowhere the line says; kept visible, one entry per line, never merged). | Free |
 | `adjudicate_transfers` | Decide whether ambiguous pairs from list_transfers are transfers. | Free |
 | `evaluate_benchmark` | Score parsed bank statement transactions against the Bankstatemently benchmark ground truth. | Free |
 <!-- TOOLS_TABLE_END -->
