@@ -1,7 +1,7 @@
 {
   "name": "bankstatemently",
-  "version": "0.19.1",
-  "description": "Convert PDF bank statements to CSV or QBO, and keep every statement you upload queryable — transactions, accounts, and balances across your whole financial history.",
+  "version": "0.19.3",
+  "description": "Convert PDF bank statements to CSV, Excel, or QBO and query them in Claude. After adding, connect Bankstatemently under Connectors, then attach a statement PDF and ask Claude to convert it. Requires a Bankstatemently account.",
   "author": {
     "name": "Uncommon Goods Lab Pte. Ltd.",
     "url": "https://bankstatemently.com"

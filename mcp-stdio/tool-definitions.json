@@ -2979,7 +2979,7 @@
     {
       "name": "rate_statement",
       "title": "Rate Statement Conversion",
-      "description": "Report how well a previously converted bank statement was parsed: submit a 1-5 rating, optionally with structured feedback when the rating is 3 or below. Your rating counts toward the average ratings shown on bankstatemently.com. Calling this again for the same document updates your existing rating without clearing feedback already submitted for it. Returns the stored rating state in the response — there is no separate tool to read your own rating back. Every response includes a \"summary\" field: use it as the single source of truth for what happened.",
+      "description": "Report how well a previously converted bank statement was parsed: submit a 1-5 rating, optionally with structured feedback at any rating. Your rating counts toward the average ratings shown on bankstatemently.com. Calling this again for the same document updates your existing rating without clearing feedback already submitted for it. Returns the stored rating state in the response — there is no separate tool to read your own rating back. Every response includes a \"summary\" field: use it as the single source of truth for what happened.",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -2994,7 +2994,7 @@
             "description": "1-5 star rating for this conversion"
           },
           "feedback_categories": {
-            "description": "Structured feedback categories. Only when the rating is 3 or below.",
+            "description": "Structured feedback categories.",
             "type": "array",
             "items": {
               "type": "string",
@@ -3009,7 +3009,7 @@
             }
           },
           "feedback": {
-            "description": "Free-text feedback. Only when the rating is 3 or below.",
+            "description": "Free-text feedback.",
             "type": "string",
             "maxLength": 1000
           }
@@ -5718,7 +5718,7 @@
       "name": "convert_statement_workflow",
       "title": "Convert Statement Workflow",
       "description": "Use when the user attaches a bank statement PDF or asks for CSV/XLSX/QBO/Xero export of a converted statement. Do not use for spending analysis, reconciliation, or benchmark scoring — those have their own skills.",
-      "text": "# Convert\n\n**Input:** a public HTTPS PDF URL, host-provided PDF attachment, or local file path the host cannot pass directly.\n**Output:** the conversion summary, key account details, statement period, balances, transaction count, and optional CSV/XLSX/QBO/Xero download links.\n\nFollow this sequence:\n\n1. If the input is a public HTTPS URL or host-provided PDF attachment, call `convert_statement`.\n2. If the input is a local file path and the host cannot pass the file directly, call `request_upload`, upload the PDF bytes to the returned URL, then call `convert_statement` with the upload id.\n3. If conversion is still processing, poll `get_statement` until the statement is ready or the tool returns a terminal summary.\n4. Present the tool summary, key account details, statement period, balances, and transaction count. Use the response summary as the source of truth when present.\n5. Ask which export the user wants. For CSV, XLSX, QBO, or Xero, call `get_statement` with the requested output format and present the returned link.\n\n**Example prompt:** Convert this bank statement PDF and give me a CSV download: https://bankstatemently.com/benchmark/statements/bsb-004-statement.pdf\n",
+      "text": "# Convert\n\n**Input:** a public HTTPS PDF URL, host-provided PDF attachment, or local file path the host cannot pass directly.\n**Output:** the conversion summary, key account details, statement period, balances, transaction count, and optional CSV/XLSX/QBO/Xero download links.\n\nFollow this sequence:\n\n1. If the input is a public HTTPS URL or host-provided PDF attachment, call `convert_statement`.\n2. If the input is a local file path and the host cannot pass the file directly, call `request_upload`, upload the PDF bytes from the file's absolute path to the returned URL, then call `convert_statement` with the upload id.\n3. If conversion is still processing, poll `get_statement` until the statement is ready or the tool returns a terminal summary.\n4. Present the tool summary, key account details, statement period, balances, and transaction count. Use the response summary as the source of truth when present.\n5. Ask which export the user wants. For CSV, XLSX, QBO, or Xero, call `get_statement` with the requested output format and present the returned link.\n\n**Example prompt:** Convert this bank statement PDF and give me a CSV download: https://bankstatemently.com/benchmark/statements/bsb-004-statement.pdf\n",
       "argKey": "source",
       "argsJsonSchema": {
         "type": "object",

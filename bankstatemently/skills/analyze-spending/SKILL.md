@@ -10,6 +10,10 @@ description: Use when the user asks to categorize spending, group by merchant or
 
 Treat the input as the user's analysis scope: account, product, content hash, date range, or free-text filter.
 
+<!-- claude-only:start -->
+**Before anything else:** if the Bankstatemently tools are not available in this session, the Bankstatemently connector is not connected. Tell the user that first, and how to connect it: Customize → Connectors → Bankstatemently → Connect, which asks them to sign in to a Bankstatemently account. Then ask whether they want to connect or have you do the task directly. If you do it directly, say that the result was not produced by Bankstatemently.
+<!-- claude-only:end -->
+
 Follow this sequence:
 
 1. If the scoped statement has not been categorized, call `categorize_statement`.
