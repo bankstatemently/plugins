@@ -550,14 +550,7 @@
                                         "type": "string"
                                       },
                                       "balance": {
-                                        "anyOf": [
-                                          {
-                                            "type": "number"
-                                          },
-                                          {
-                                            "type": "string"
-                                          }
-                                        ]
+                                        "type": "number"
                                       },
                                       "accountId": {
                                         "type": "number"
@@ -1429,14 +1422,7 @@
                                         "type": "string"
                                       },
                                       "balance": {
-                                        "anyOf": [
-                                          {
-                                            "type": "number"
-                                          },
-                                          {
-                                            "type": "string"
-                                          }
-                                        ]
+                                        "type": "number"
                                       },
                                       "accountId": {
                                         "type": "number"
@@ -2838,7 +2824,7 @@
       },
       "annotations": {
         "readOnlyHint": false,
-        "destructiveHint": true,
+        "destructiveHint": false,
         "openWorldHint": false
       },
       "_meta": {
@@ -2849,6 +2835,528 @@
         ],
         "openai/toolInvocation/invoking": "Adjudicating transfers…",
         "openai/toolInvocation/invoked": "Transfers adjudicated"
+      }
+    },
+    {
+      "name": "adjudicate_outflows",
+      "title": "Adjudicate Outflows",
+      "description": "Decide where an \"unresolved\" debit from list_outflows went (the documents' claims conflict and nothing settles them). Pass \"verdict\" and \"transactionIds\" when the user has told you; leave \"verdict\" out to let the AI judge decide the named rows, or every unresolved row. Returns the updated list_outflows answer.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "dateRange": {
+            "description": "Same range as list_outflows: which debits the returned list_outflows answer reports.",
+            "type": "object",
+            "properties": {
+              "from": {
+                "type": "string",
+                "format": "date",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+                "description": "ISO date (YYYY-MM-DD). Inclusive start of the range."
+              },
+              "to": {
+                "type": "string",
+                "format": "date",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+                "description": "ISO date (YYYY-MM-DD). Inclusive end of the range."
+              }
+            },
+            "required": [
+              "from",
+              "to"
+            ],
+            "additionalProperties": false
+          },
+          "transactionIds": {
+            "description": "transactionId of rows as list_outflows returned them in \"unresolved\". Required with verdict; omit to judge every unresolved row.",
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "verdict": {
+            "description": "Where the money went, as the user said. Omit to let the judge decide.",
+            "type": "string",
+            "enum": [
+              "own-account",
+              "account",
+              "cash",
+              "name"
+            ]
+          },
+          "scope": {
+            "description": "Optional structural scope (WHO × WHEN). Omit to search across all your completed statements. \"accounts\" is a list of account/product chips ({ kind: \"account\" | \"product\", id }, the id of an account descriptor or product returned by a tool); \"dateRange\" bounds by transaction date (YYYY-MM-DD).",
+            "type": "object",
+            "properties": {
+              "accounts": {
+                "type": "array",
+                "items": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "const": "account",
+                          "description": "This chip addresses a single account."
+                        },
+                        "id": {
+                          "type": "string",
+                          "format": "uuid",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                          "description": "The account id: the `id` of an account descriptor returned by a tool, or of a statement tool `accounts[]` entry."
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "id"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "const": "product",
+                          "description": "This chip addresses a product and expands to its child accounts."
+                        },
+                        "id": {
+                          "type": "string",
+                          "format": "uuid",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                          "description": "The product id: the `id` of a product returned by a statement tool (`get_statement` / `convert_statement`, `products[].id`)."
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "id"
+                      ],
+                      "additionalProperties": false
+                    }
+                  ]
+                },
+                "description": "Account/product id chips (kind + id) to scope to. Empty = all accounts."
+              },
+              "dateRange": {
+                "description": "Bounds results to transactions within this date range. Omit for no date filter.",
+                "type": "object",
+                "properties": {
+                  "from": {
+                    "type": "string",
+                    "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+                    "description": "Start of the date range (inclusive), YYYY-MM-DD."
+                  },
+                  "to": {
+                    "type": "string",
+                    "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+                    "description": "End of the date range (inclusive), YYYY-MM-DD."
+                  }
+                },
+                "required": [
+                  "from",
+                  "to"
+                ]
+              }
+            },
+            "required": [
+              "accounts"
+            ]
+          }
+        },
+        "$schema": "https://json-schema.org/draft/2020-12/schema"
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "dateRange": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "from": {
+                    "type": "string",
+                    "format": "date",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+                    "description": "ISO date (YYYY-MM-DD). Inclusive start of the range."
+                  },
+                  "to": {
+                    "type": "string",
+                    "format": "date",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+                    "description": "ISO date (YYYY-MM-DD). Inclusive end of the range."
+                  }
+                },
+                "required": [
+                  "from",
+                  "to"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "destinations": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "own-account",
+                    "account",
+                    "cash",
+                    "name",
+                    "unknown"
+                  ]
+                },
+                "label": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "identifiers": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "totals": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "currency": {
+                        "type": "string"
+                      },
+                      "amount": {
+                        "type": "number"
+                      }
+                    },
+                    "required": [
+                      "currency",
+                      "amount"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "outflows": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "date": {
+                        "type": "string"
+                      },
+                      "amount": {
+                        "type": "number"
+                      },
+                      "currency": {
+                        "type": "string"
+                      },
+                      "account": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "label": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "label"
+                        ],
+                        "additionalProperties": false
+                      },
+                      "sourceDocument": {
+                        "type": "object",
+                        "properties": {
+                          "contentHash": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        },
+                        "required": [
+                          "contentHash"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "required": [
+                      "date",
+                      "amount",
+                      "currency",
+                      "account",
+                      "sourceDocument"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              },
+              "required": [
+                "kind",
+                "label",
+                "identifiers",
+                "totals",
+                "outflows"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "mayBeOwnAccount": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "date": {
+                  "type": "string"
+                },
+                "amount": {
+                  "type": "number"
+                },
+                "currency": {
+                  "type": "string"
+                },
+                "account": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "label": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "label"
+                  ],
+                  "additionalProperties": false
+                },
+                "sourceDocument": {
+                  "type": "object",
+                  "properties": {
+                    "contentHash": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "contentHash"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "required": [
+                "date",
+                "amount",
+                "currency",
+                "account",
+                "sourceDocument"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "unresolved": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "date": {
+                  "type": "string"
+                },
+                "amount": {
+                  "type": "number"
+                },
+                "currency": {
+                  "type": "string"
+                },
+                "account": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "label": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "label"
+                  ],
+                  "additionalProperties": false
+                },
+                "sourceDocument": {
+                  "type": "object",
+                  "properties": {
+                    "contentHash": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "contentHash"
+                  ],
+                  "additionalProperties": false
+                },
+                "transactionId": {
+                  "type": "string"
+                },
+                "judgeModelId": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "date",
+                "amount",
+                "currency",
+                "account",
+                "sourceDocument",
+                "transactionId",
+                "judgeModelId"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "scope": {
+            "type": "object",
+            "properties": {
+              "documentCount": {
+                "type": "number"
+              },
+              "dateRange": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "from": {
+                        "type": "string"
+                      },
+                      "to": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "from",
+                      "to"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "documentCount",
+              "dateRange"
+            ],
+            "additionalProperties": false
+          },
+          "adjudication": {
+            "type": "object",
+            "properties": {
+              "recorded": {
+                "type": "number"
+              },
+              "judged": {
+                "type": "number"
+              },
+              "remainingUnjudged": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "recorded",
+              "judged",
+              "remainingUnjudged"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "dateRange",
+          "destinations",
+          "mayBeOwnAccount",
+          "unresolved",
+          "scope",
+          "adjudication"
+        ],
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "openWorldHint": false
+      },
+      "_meta": {
+        "securitySchemes": [
+          {
+            "type": "oauth2"
+          }
+        ],
+        "openai/toolInvocation/invoking": "Adjudicating outflows…",
+        "openai/toolInvocation/invoked": "Outflows adjudicated"
       }
     },
     {
@@ -2935,13 +3443,24 @@
                     "type": "null"
                   }
                 ]
+              },
+              "memoriesCap": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
               }
             },
             "required": [
               "maxPagesPerUpload",
               "maxUploadSizeMb",
               "dailySpendCap",
-              "monthlyPages"
+              "monthlyPages",
+              "memoriesCap"
             ],
             "additionalProperties": false
           },
@@ -2974,6 +3493,782 @@
         ],
         "openai/toolInvocation/invoking": "Checking your credit balance…",
         "openai/toolInvocation/invoked": "Balance checked"
+      }
+    },
+    {
+      "name": "list_memories",
+      "title": "List Memories",
+      "description": "List your memories, default memory first. The default memory covers the whole workspace. Named memories include name, situation and scope. Free to use — no credits consumed.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "$schema": "https://json-schema.org/draft/2020-12/schema"
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "memories": {
+            "type": "array",
+            "items": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "isDefault": {
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "name": {
+                      "type": "null"
+                    },
+                    "situation": {
+                      "type": "null"
+                    },
+                    "scope": {
+                      "type": "null"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "isDefault",
+                    "name",
+                    "situation",
+                    "scope"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "isDefault": {
+                      "type": "boolean",
+                      "const": false
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "situation": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "enum": [
+                            "bookkeeping",
+                            "divorce",
+                            "estate"
+                          ]
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "scope": {
+                      "type": "object",
+                      "properties": {
+                        "accounts": {
+                          "type": "array",
+                          "items": {
+                            "oneOf": [
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "kind": {
+                                    "type": "string",
+                                    "const": "account",
+                                    "description": "This chip addresses a single account."
+                                  },
+                                  "id": {
+                                    "type": "string",
+                                    "format": "uuid",
+                                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                                    "description": "The account id: the `id` of an account descriptor returned by a tool, or of a statement tool `accounts[]` entry."
+                                  }
+                                },
+                                "required": [
+                                  "kind",
+                                  "id"
+                                ],
+                                "additionalProperties": false
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "kind": {
+                                    "type": "string",
+                                    "const": "product",
+                                    "description": "This chip addresses a product and expands to its child accounts."
+                                  },
+                                  "id": {
+                                    "type": "string",
+                                    "format": "uuid",
+                                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                                    "description": "The product id: the `id` of a product returned by a statement tool (`get_statement` / `convert_statement`, `products[].id`)."
+                                  }
+                                },
+                                "required": [
+                                  "kind",
+                                  "id"
+                                ],
+                                "additionalProperties": false
+                              }
+                            ]
+                          },
+                          "description": "Account/product id chips (kind + id) to scope to. Empty = all accounts."
+                        },
+                        "dateRange": {
+                          "description": "Bounds results to transactions within this date range. Omit for no date filter.",
+                          "type": "object",
+                          "properties": {
+                            "from": {
+                              "type": "string",
+                              "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+                              "description": "Start of the date range (inclusive), YYYY-MM-DD."
+                            },
+                            "to": {
+                              "type": "string",
+                              "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+                              "description": "End of the date range (inclusive), YYYY-MM-DD."
+                            }
+                          },
+                          "required": [
+                            "from",
+                            "to"
+                          ],
+                          "additionalProperties": false
+                        }
+                      },
+                      "required": [
+                        "accounts"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "isDefault",
+                    "name",
+                    "situation",
+                    "scope"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            }
+          }
+        },
+        "required": [
+          "memories"
+        ],
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": false
+      },
+      "_meta": {
+        "securitySchemes": [
+          {
+            "type": "oauth2"
+          }
+        ],
+        "openai/toolInvocation/invoking": "Listing your memories…",
+        "openai/toolInvocation/invoked": "Memories listed"
+      }
+    },
+    {
+      "name": "create_memory",
+      "title": "Create Memory",
+      "description": "Create a named memory: a scoped lens over your accounts and dates with a user-authored name, optional situation (\"bookkeeping\", \"divorce\" or \"estate\"), and ChatScope. Free to use — no credits consumed.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120,
+            "description": "User-authored memory name, such as a client, case, or matter name."
+          },
+          "situation": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "bookkeeping",
+                  "divorce",
+                  "estate"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Optional matter this memory is about: bookkeeping, divorce, estate, or null."
+          },
+          "scope": {
+            "type": "object",
+            "properties": {
+              "accounts": {
+                "type": "array",
+                "items": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "const": "account",
+                          "description": "This chip addresses a single account."
+                        },
+                        "id": {
+                          "type": "string",
+                          "format": "uuid",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                          "description": "The account id: the `id` of an account descriptor returned by a tool, or of a statement tool `accounts[]` entry."
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "id"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "const": "product",
+                          "description": "This chip addresses a product and expands to its child accounts."
+                        },
+                        "id": {
+                          "type": "string",
+                          "format": "uuid",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                          "description": "The product id: the `id` of a product returned by a statement tool (`get_statement` / `convert_statement`, `products[].id`)."
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "id"
+                      ],
+                      "additionalProperties": false
+                    }
+                  ]
+                },
+                "description": "Account/product id chips (kind + id) to scope to. Empty = all accounts."
+              },
+              "dateRange": {
+                "description": "Bounds results to transactions within this date range. Omit for no date filter.",
+                "type": "object",
+                "properties": {
+                  "from": {
+                    "type": "string",
+                    "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+                    "description": "Start of the date range (inclusive), YYYY-MM-DD."
+                  },
+                  "to": {
+                    "type": "string",
+                    "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+                    "description": "End of the date range (inclusive), YYYY-MM-DD."
+                  }
+                },
+                "required": [
+                  "from",
+                  "to"
+                ]
+              }
+            },
+            "required": [
+              "accounts"
+            ],
+            "description": "The accounts/products and optional date range this memory covers."
+          }
+        },
+        "required": [
+          "name",
+          "situation",
+          "scope"
+        ],
+        "$schema": "https://json-schema.org/draft/2020-12/schema"
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "memory": {
+            "oneOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "isDefault": {
+                    "type": "boolean",
+                    "const": true
+                  },
+                  "name": {
+                    "type": "null"
+                  },
+                  "situation": {
+                    "type": "null"
+                  },
+                  "scope": {
+                    "type": "null"
+                  }
+                },
+                "required": [
+                  "id",
+                  "isDefault",
+                  "name",
+                  "situation",
+                  "scope"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "isDefault": {
+                    "type": "boolean",
+                    "const": false
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "situation": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "enum": [
+                          "bookkeeping",
+                          "divorce",
+                          "estate"
+                        ]
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "scope": {
+                    "type": "object",
+                    "properties": {
+                      "accounts": {
+                        "type": "array",
+                        "items": {
+                          "oneOf": [
+                            {
+                              "type": "object",
+                              "properties": {
+                                "kind": {
+                                  "type": "string",
+                                  "const": "account",
+                                  "description": "This chip addresses a single account."
+                                },
+                                "id": {
+                                  "type": "string",
+                                  "format": "uuid",
+                                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                                  "description": "The account id: the `id` of an account descriptor returned by a tool, or of a statement tool `accounts[]` entry."
+                                }
+                              },
+                              "required": [
+                                "kind",
+                                "id"
+                              ],
+                              "additionalProperties": false
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "kind": {
+                                  "type": "string",
+                                  "const": "product",
+                                  "description": "This chip addresses a product and expands to its child accounts."
+                                },
+                                "id": {
+                                  "type": "string",
+                                  "format": "uuid",
+                                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                                  "description": "The product id: the `id` of a product returned by a statement tool (`get_statement` / `convert_statement`, `products[].id`)."
+                                }
+                              },
+                              "required": [
+                                "kind",
+                                "id"
+                              ],
+                              "additionalProperties": false
+                            }
+                          ]
+                        },
+                        "description": "Account/product id chips (kind + id) to scope to. Empty = all accounts."
+                      },
+                      "dateRange": {
+                        "description": "Bounds results to transactions within this date range. Omit for no date filter.",
+                        "type": "object",
+                        "properties": {
+                          "from": {
+                            "type": "string",
+                            "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+                            "description": "Start of the date range (inclusive), YYYY-MM-DD."
+                          },
+                          "to": {
+                            "type": "string",
+                            "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+                            "description": "End of the date range (inclusive), YYYY-MM-DD."
+                          }
+                        },
+                        "required": [
+                          "from",
+                          "to"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "required": [
+                      "accounts"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "id",
+                  "isDefault",
+                  "name",
+                  "situation",
+                  "scope"
+                ],
+                "additionalProperties": false
+              }
+            ]
+          }
+        },
+        "required": [
+          "memory"
+        ],
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "openWorldHint": false
+      },
+      "_meta": {
+        "securitySchemes": [
+          {
+            "type": "oauth2"
+          }
+        ],
+        "openai/toolInvocation/invoking": "Creating memory…",
+        "openai/toolInvocation/invoked": "Memory created"
+      }
+    },
+    {
+      "name": "update_memory",
+      "title": "Update Memory",
+      "description": "Rename or rescope an existing named memory, or update its situation. The default memory is immutable. Free to use — no credits consumed.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "memoryId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+            "description": "The id of the named memory to update. The default memory is immutable."
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120,
+            "description": "New user-authored memory name."
+          },
+          "situation": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "bookkeeping",
+                  "divorce",
+                  "estate"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Updated matter this memory is about: bookkeeping, divorce, estate, or null."
+          },
+          "scope": {
+            "type": "object",
+            "properties": {
+              "accounts": {
+                "type": "array",
+                "items": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "const": "account",
+                          "description": "This chip addresses a single account."
+                        },
+                        "id": {
+                          "type": "string",
+                          "format": "uuid",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                          "description": "The account id: the `id` of an account descriptor returned by a tool, or of a statement tool `accounts[]` entry."
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "id"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "const": "product",
+                          "description": "This chip addresses a product and expands to its child accounts."
+                        },
+                        "id": {
+                          "type": "string",
+                          "format": "uuid",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                          "description": "The product id: the `id` of a product returned by a statement tool (`get_statement` / `convert_statement`, `products[].id`)."
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "id"
+                      ],
+                      "additionalProperties": false
+                    }
+                  ]
+                },
+                "description": "Account/product id chips (kind + id) to scope to. Empty = all accounts."
+              },
+              "dateRange": {
+                "description": "Bounds results to transactions within this date range. Omit for no date filter.",
+                "type": "object",
+                "properties": {
+                  "from": {
+                    "type": "string",
+                    "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+                    "description": "Start of the date range (inclusive), YYYY-MM-DD."
+                  },
+                  "to": {
+                    "type": "string",
+                    "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+                    "description": "End of the date range (inclusive), YYYY-MM-DD."
+                  }
+                },
+                "required": [
+                  "from",
+                  "to"
+                ]
+              }
+            },
+            "required": [
+              "accounts"
+            ],
+            "description": "Updated accounts/products and optional date range this memory covers."
+          }
+        },
+        "required": [
+          "memoryId"
+        ],
+        "$schema": "https://json-schema.org/draft/2020-12/schema"
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "memory": {
+            "oneOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "isDefault": {
+                    "type": "boolean",
+                    "const": true
+                  },
+                  "name": {
+                    "type": "null"
+                  },
+                  "situation": {
+                    "type": "null"
+                  },
+                  "scope": {
+                    "type": "null"
+                  }
+                },
+                "required": [
+                  "id",
+                  "isDefault",
+                  "name",
+                  "situation",
+                  "scope"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "isDefault": {
+                    "type": "boolean",
+                    "const": false
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "situation": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "enum": [
+                          "bookkeeping",
+                          "divorce",
+                          "estate"
+                        ]
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "scope": {
+                    "type": "object",
+                    "properties": {
+                      "accounts": {
+                        "type": "array",
+                        "items": {
+                          "oneOf": [
+                            {
+                              "type": "object",
+                              "properties": {
+                                "kind": {
+                                  "type": "string",
+                                  "const": "account",
+                                  "description": "This chip addresses a single account."
+                                },
+                                "id": {
+                                  "type": "string",
+                                  "format": "uuid",
+                                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                                  "description": "The account id: the `id` of an account descriptor returned by a tool, or of a statement tool `accounts[]` entry."
+                                }
+                              },
+                              "required": [
+                                "kind",
+                                "id"
+                              ],
+                              "additionalProperties": false
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "kind": {
+                                  "type": "string",
+                                  "const": "product",
+                                  "description": "This chip addresses a product and expands to its child accounts."
+                                },
+                                "id": {
+                                  "type": "string",
+                                  "format": "uuid",
+                                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                                  "description": "The product id: the `id` of a product returned by a statement tool (`get_statement` / `convert_statement`, `products[].id`)."
+                                }
+                              },
+                              "required": [
+                                "kind",
+                                "id"
+                              ],
+                              "additionalProperties": false
+                            }
+                          ]
+                        },
+                        "description": "Account/product id chips (kind + id) to scope to. Empty = all accounts."
+                      },
+                      "dateRange": {
+                        "description": "Bounds results to transactions within this date range. Omit for no date filter.",
+                        "type": "object",
+                        "properties": {
+                          "from": {
+                            "type": "string",
+                            "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+                            "description": "Start of the date range (inclusive), YYYY-MM-DD."
+                          },
+                          "to": {
+                            "type": "string",
+                            "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+                            "description": "End of the date range (inclusive), YYYY-MM-DD."
+                          }
+                        },
+                        "required": [
+                          "from",
+                          "to"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "required": [
+                      "accounts"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "id",
+                  "isDefault",
+                  "name",
+                  "situation",
+                  "scope"
+                ],
+                "additionalProperties": false
+              }
+            ]
+          }
+        },
+        "required": [
+          "memory"
+        ],
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "openWorldHint": false
+      },
+      "_meta": {
+        "securitySchemes": [
+          {
+            "type": "oauth2"
+          }
+        ],
+        "openai/toolInvocation/invoking": "Updating memory…",
+        "openai/toolInvocation/invoked": "Memory updated"
       }
     },
     {
@@ -5715,7 +7010,7 @@
     {
       "name": "list_outflows",
       "title": "List Money That Left Your Accounts",
-      "description": "Every debit that left your accounts — in no confirmed transfer between your own accounts, and not a fee — each in ONE destination whose kind is also its next step: \"own-account\" (a printed account mask that names one of your accounts and no matched credit was found: ask for that account's statement), \"account\" (a printed account mask for an account outside your statements: request that account's statements; an in-kind move such as securities, crypto or escrow starts as a wire to that account and becomes visible only once the receiving statement is uploaded), \"cash\" (cash out: where it went cannot be followed, so the cumulative amount is the finding), \"name\" (a named party: review whether it was household spending) and \"unknown\" (nowhere the line says; kept visible, one entry per line, never merged). A destination carries the cumulative amount sent, per currency, never a balance. \"mayBeOwnAccount\" lists debits in an open candidate pair (\"may be a move between your own accounts\") apart, in no total. THE way to answer \"did money disappear from my accounts, and where do I look next\" — never answer it by summing list_transactions rows. Pass \"dateRange\" ({ from, to }, inclusive, YYYY-MM-DD) to report only debits in that range, for example from a separation date: transfers are matched over the whole scope first, so a transfer whose credit lies outside the range is still a transfer, never an outflow. Scope defaults to all your completed statements; pass \"scope\" to narrow to specific accounts/products and/or a date range (a scope date range also narrows what is matched — prefer \"dateRange\").",
+      "description": "Every debit that left your accounts — in no confirmed transfer between your own accounts, and not a fee — each in ONE destination whose kind is also its next step: \"own-account\" (a printed account mask that names one of your accounts and no matched credit was found: ask for that account's statement), \"account\" (a printed account mask for an account outside your statements: request that account's statements; an in-kind move such as securities, crypto or escrow starts as a wire to that account and becomes visible only once the receiving statement is uploaded), \"cash\" (cash out: where it went cannot be followed, so the cumulative amount is the finding), \"name\" (a named party: review whether it was household spending) and \"unknown\" (nowhere the line says; kept visible, one entry per line, never merged). A destination carries the cumulative amount sent, per currency, never a balance. \"mayBeOwnAccount\" lists debits in an open candidate pair (\"may be a move between your own accounts\") apart, in no total. \"unresolved\" lists debits whose documents conflict about where they went (a transfer term and a payment term, no category to settle it) apart, in no total: the documents do not say where they went, so say so and ask the person to confirm. THE way to answer \"did money disappear from my accounts, and where do I look next\" — never answer it by summing list_transactions rows. Pass \"dateRange\" ({ from, to }, inclusive, YYYY-MM-DD) to report only debits in that range, for example from a separation date: transfers are matched over the whole scope first, so a transfer whose credit lies outside the range is still a transfer, never an outflow. Scope defaults to all your completed statements; pass \"scope\" to narrow to specific accounts/products and/or a date range (a scope date range also narrows what is matched — prefer \"dateRange\").",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -5877,6 +7172,12 @@
                     }
                   ]
                 },
+                "identifiers": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
                 "totals": {
                   "type": "array",
                   "items": {
@@ -5967,6 +7268,7 @@
               "required": [
                 "kind",
                 "label",
+                "identifiers",
                 "totals",
                 "outflows"
               ],
@@ -6040,6 +7342,88 @@
               "additionalProperties": false
             }
           },
+          "unresolved": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "date": {
+                  "type": "string"
+                },
+                "amount": {
+                  "type": "number"
+                },
+                "currency": {
+                  "type": "string"
+                },
+                "account": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "label": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "label"
+                  ],
+                  "additionalProperties": false
+                },
+                "sourceDocument": {
+                  "type": "object",
+                  "properties": {
+                    "contentHash": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "contentHash"
+                  ],
+                  "additionalProperties": false
+                },
+                "transactionId": {
+                  "type": "string"
+                },
+                "judgeModelId": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "date",
+                "amount",
+                "currency",
+                "account",
+                "sourceDocument",
+                "transactionId",
+                "judgeModelId"
+              ],
+              "additionalProperties": false
+            }
+          },
           "scope": {
             "type": "object",
             "properties": {
@@ -6081,6 +7465,7 @@
           "dateRange",
           "destinations",
           "mayBeOwnAccount",
+          "unresolved",
           "scope"
         ],
         "$schema": "https://json-schema.org/draft/2020-12/schema",

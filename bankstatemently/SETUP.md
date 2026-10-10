@@ -42,8 +42,12 @@ Tool credit costs for the Bankstatemently MCP tools:
 | `top_n` | Free |
 | `compare` | Free |
 | `time_series` | Free |
+| `list_memories` | Free |
+| `create_memory` | Free |
+| `update_memory` | Free |
 | `list_transfers` | Free |
 | `list_outflows` | Free |
 | `adjudicate_transfers` | Free |
+| `adjudicate_outflows` | Free |
 | `evaluate_benchmark` | Free |
 <!-- TOOL_CREDITS_END -->
